@@ -17,15 +17,12 @@ Upload a photo of a cotton field to the web app (or send it to the API).
 ## What this is not
 - It does not recommend herbicides or any spraying decision
 - It does not control drones or work in real time
-- It is not validated outside its training data (one dataset, one region),
-  so it should not be trusted on other crops, lighting, or growth stages
+- It is not validated outside its training data (one dataset, one region), so it should not be trusted on other crops, lighting, or growth stages
 
 ## How I'll know it works
-- Detection quality is measured on a held-out test set that shares no
-  near-duplicate images with the training data
+- Detection quality is measured on a held-out test set that shares no near-duplicate images with the training data
 - Per-species results are reported, so weak classes are visible
 - The API rejects bad uploads and the service is deployed with a runbook
 
 ## Known limits
-Free hosting means slow cold starts and CPU-only inference. This is a
-portfolio project, not a farming tool.
+Free hosting means slow cold starts and CPU-only inference. This is a portfolio project, not a farming tool.
