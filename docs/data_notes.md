@@ -29,3 +29,12 @@ Test has only 8 Sicklepod and 12 Cutleaf groundcherry images, so per-class
 results for those are noisy. Test covers only 3 sessions.
 Stray YOLO boxes removed from the JSON-based labels cost Cutleaf groundcherry
 7 images (104 real versus 111 in the shipped labels).
+
+## Leakage check
+Difference-hash comparison of all images against the split manifest.
+At distance <= 6 there are 10 near-duplicate pairs, all within a single split
+and a single date. At distance <= 12 there are 39 cross-split pairs on
+different dates. I viewed the two most suspicious ones and they show
+different plants on different soil, matched only because they are the same
+species photographed from above. I did not inspect the other 37. Split v1 is
+kept. The date grouping remains the main protection against leakage.
