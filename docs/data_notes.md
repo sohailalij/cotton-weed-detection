@@ -21,3 +21,11 @@ from it (src/weedlab/convert_labels.py).
 ## Limits
 Close-up single-plant images only. The model is not validated on wide field
 views, drone imagery, or other regions or seasons.
+
+## Split
+Grouped by photo date (23 groups) so a session never spans two splits.
+Split v1 (seed 42): train 3,988 / val 815 / test 845 images, from 15 / 5 / 3 groups.
+Test has only 8 Sicklepod and 12 Cutleaf groundcherry images, so per-class
+results for those are noisy. Test covers only 3 sessions.
+Stray YOLO boxes removed from the JSON-based labels cost Cutleaf groundcherry
+7 images (104 real versus 111 in the shipped labels).
