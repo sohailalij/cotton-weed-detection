@@ -1,0 +1,11 @@
+distance,image_a,image_b,split_a,split_b,same_date
+0,20210712_iPhoneSE_YL_128,20210712_iPhoneSE_YL_129,train,train,True
+0,20210903_YALAL00_EO_85,20210903_YALAL00_EO_86,train,train,True
+0,20210903_iPhoneSE_YL_10,20210903_iPhoneSE_YL_9,train,train,True
+1,20210809_iPhoneSE_YL_1579,20210809_iPhoneSE_YL_1585,train,train,True
+2,20210820_iPhoneSE_YL_1422,20210820_iPhoneSE_YL_1424,val,val,True
+2,20210827_iPhone11Pro_BT_1,20210827_iPhone11Pro_BT_85,train,train,True
+2,20210903_YALAL00_EO_28,20210903_YALAL00_EO_29,train,train,True
+5,20210903_YALAL00_EO_7,20210903_YALAL00_EO_8,train,train,True
+6,20210712_iPhoneSE_YL_206,20210712_iPhoneSE_YL_207,train,train,True
+6,20210903_YALAL00_EO_2,20210903_YALAL00_EO_3,train,train,True
