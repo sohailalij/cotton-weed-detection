@@ -8,6 +8,7 @@ dependencies = []
 [project.optional-dependencies]
 dev = ["ruff", "mypy", "pytest", "pre-commit"]
 data = ["pillow"]
+notebook = ["pandas", "matplotlib", "ipykernel"]
 
 [build-system]
 requires = ["setuptools>=68"]
