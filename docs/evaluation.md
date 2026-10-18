@@ -39,6 +39,21 @@ The other 37 were not inspected.
 - All images are close-ups of a single plant. Wide field or drone views are
   out of scope.
 
+## Model selection (written before the test set was evaluated)
+
+Both baselines were trained with identical settings (`configs/train_yolo11n.yaml`
+and `configs/train_yolo11s.yaml`) and compared on the validation set only.
+YOLO11s scored higher on every headline metric (mAP50 0.881 versus 0.853,
+mAP50-95 0.822 versus 0.784), so YOLO11s is the model carried forward.
+
+Both models are evaluated on the test set once, for reporting. Test results
+will not be used to change the model choice, the hyperparameters, or the
+confidence threshold; any threshold used in the API is chosen on validation.
+
+Inference speed is measured separately. If CPU latency makes YOLO11s unusable
+for free-tier hosting, that is a deployment constraint and will be recorded
+here as its own decision, not as a test-set result.
+
 ## Results (Phase 3)
 
 To be filled in after training and evaluation.
