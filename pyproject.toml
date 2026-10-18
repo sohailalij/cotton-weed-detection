@@ -32,3 +32,4 @@ strict = true
 [[tool.mypy.overrides]]
 module = ["ultralytics", "ultralytics.*", "yaml"]
 ignore_missing_imports = true
+follow_imports = "skip"
