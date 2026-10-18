@@ -7,8 +7,9 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["ruff==0.17.0", "mypy", "pytest", "pre-commit"]
-data = ["pillow"]
+data = ["pillow", "pyyaml"]
 notebook = ["pandas", "matplotlib", "ipykernel"]
+train = ["ultralytics==8.4.181"]
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -27,3 +28,7 @@ target-version = "py311"
 [tool.mypy]
 python_version = "3.11"
 strict = true
+
+[[tool.mypy.overrides]]
+module = ["ultralytics", "ultralytics.*", "yaml"]
+ignore_missing_imports = true
