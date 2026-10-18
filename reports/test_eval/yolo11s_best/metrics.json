@@ -1,0 +1,129 @@
+{
+ "model_file": "yolo11s_best.pt",
+ "split": "test",
+ "map50": 0.9055,
+ "map50_95": 0.8439,
+ "precision": 0.9458,
+ "recall": 0.7771,
+ "per_class": [
+  {
+   "class": "waterhemp",
+   "images": 291,
+   "boxes": 385,
+   "precision": 0.9425,
+   "recall": 0.8675,
+   "map50": 0.9498,
+   "map50_95": 0.9087
+  },
+  {
+   "class": "morning_glory",
+   "images": 137,
+   "boxes": 147,
+   "precision": 0.9787,
+   "recall": 0.9391,
+   "map50": 0.9854,
+   "map50_95": 0.9138
+  },
+  {
+   "class": "purslane",
+   "images": 85,
+   "boxes": 103,
+   "precision": 1.0,
+   "recall": 0.9141,
+   "map50": 0.9769,
+   "map50_95": 0.939
+  },
+  {
+   "class": "spotted_spurge",
+   "images": 29,
+   "boxes": 48,
+   "precision": 1.0,
+   "recall": 0.6955,
+   "map50": 0.8469,
+   "map50_95": 0.7745
+  },
+  {
+   "class": "carpetweed",
+   "images": 169,
+   "boxes": 293,
+   "precision": 0.9386,
+   "recall": 0.744,
+   "map50": 0.9003,
+   "map50_95": 0.7935
+  },
+  {
+   "class": "ragweed",
+   "images": 78,
+   "boxes": 140,
+   "precision": 0.8927,
+   "recall": 0.6857,
+   "map50": 0.8387,
+   "map50_95": 0.7226
+  },
+  {
+   "class": "eclipta",
+   "images": 182,
+   "boxes": 302,
+   "precision": 0.9925,
+   "recall": 0.8769,
+   "map50": 0.9719,
+   "map50_95": 0.9327
+  },
+  {
+   "class": "prickly_sida",
+   "images": 27,
+   "boxes": 31,
+   "precision": 0.8573,
+   "recall": 0.7419,
+   "map50": 0.911,
+   "map50_95": 0.8639
+  },
+  {
+   "class": "palmer_amaranth",
+   "images": 45,
+   "boxes": 51,
+   "precision": 0.9742,
+   "recall": 0.7397,
+   "map50": 0.9278,
+   "map50_95": 0.8938
+  },
+  {
+   "class": "sicklepod",
+   "images": 8,
+   "boxes": 9,
+   "precision": 0.9483,
+   "recall": 0.7778,
+   "map50": 0.9337,
+   "map50_95": 0.8044
+  },
+  {
+   "class": "goosegrass",
+   "images": 21,
+   "boxes": 22,
+   "precision": 0.9183,
+   "recall": 0.7273,
+   "map50": 0.7608,
+   "map50_95": 0.745
+  },
+  {
+   "class": "cutleaf_groundcherry",
+   "images": 12,
+   "boxes": 13,
+   "precision": 0.9061,
+   "recall": 0.6154,
+   "map50": 0.8631,
+   "map50_95": 0.8352
+  }
+ ],
+ "cpu_latency": {
+  "n_images": 50.0,
+  "median_ms": 252.1,
+  "p95_ms": 315.8
+ },
+ "versions": {
+  "python": "3.11.9",
+  "ultralytics": "8.4.181",
+  "torch": "2.14.1",
+  "cpu": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel"
+ }
+}

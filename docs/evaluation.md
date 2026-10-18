@@ -56,4 +56,64 @@ here as its own decision, not as a test-set result.
 
 ## Results (Phase 3)
 
-To be filled in after training and evaluation.
+Test split, evaluated once per model with `python -m weedlab.evaluate` on the
+frozen split (845 images, 3 photo sessions). Every number below is copied from
+`reports/test_eval/<model>/metrics.json`. Ultralytics 8.4.181, PyTorch 2.14.1 (CPU).
+
+| | YOLO11n | YOLO11s |
+|---|---|---|
+| mAP50 | 0.8865 | 0.9055 |
+| mAP50-95 | 0.8237 | 0.8439 |
+| Precision | 0.8866 | 0.9458 |
+| Recall | 0.8025 | 0.7771 |
+| CPU latency, median | 63.2 ms | 252.1 ms |
+| CPU latency, 95th percentile | 109.0 ms | 315.8 ms |
+
+mAP50 and mAP50-95 are averaged over the 12 classes. Precision and recall are
+reported at the confidence threshold Ultralytics selects, so they say less about
+the models than mAP does. Latency is one image at a time with PyTorch on the
+development laptop's CPU, measured on the resized 1024 px copies, so it excludes
+the cost of decoding and shrinking a full-size phone photo.
+
+### Per class
+
+| Class | Images | Boxes | mAP50 n | mAP50 s | mAP50-95 n | mAP50-95 s |
+|---|---|---|---|---|---|---|
+| waterhemp | 291 | 385 | 0.9535 | 0.9498 | 0.9012 | 0.9087 |
+| morning_glory | 137 | 147 | 0.9735 | 0.9854 | 0.8779 | 0.9138 |
+| purslane | 85 | 103 | 0.9747 | 0.9769 | 0.9423 | 0.9390 |
+| spotted_spurge | 29 | 48 | 0.7636 | 0.8469 | 0.6948 | 0.7745 |
+| carpetweed | 169 | 293 | 0.8968 | 0.9003 | 0.7827 | 0.7935 |
+| ragweed | 78 | 140 | 0.8143 | 0.8387 | 0.6844 | 0.7226 |
+| eclipta | 182 | 302 | 0.9633 | 0.9719 | 0.9160 | 0.9327 |
+| prickly_sida | 27 | 31 | 0.8763 | 0.9110 | 0.8174 | 0.8639 |
+| palmer_amaranth | 45 | 51 | 0.9408 | 0.9278 | 0.9271 | 0.8938 |
+| sicklepod | 8 | 9 | 0.9730 | 0.9337 | 0.8548 | 0.8044 |
+| goosegrass | 21 | 22 | 0.8550 | 0.7608 | 0.8329 | 0.7450 |
+| cutleaf_groundcherry | 12 | 13 | 0.6534 | 0.8631 | 0.6534 | 0.8352 |
+
+### What the numbers support
+
+- YOLO11s is ahead on mAP by about 2 points, but the gap is concentrated in one
+  class. Cutleaf groundcherry (13 test boxes) accounts for nearly all of the mAP50
+  difference and about three quarters of the mAP50-95 difference. Without it the
+  average mAP50 gain is about 0.002 and classes differ in both directions.
+- The models are roughly tied on mAP50 for the classes with the most boxes
+  (waterhemp, eclipta, carpetweed).
+- Ragweed is the weakest class with a meaningful number of boxes (140) for both models.
+- Classes with about 50 test boxes or fewer (spotted spurge, prickly sida,
+  palmer amaranth, sicklepod, goosegrass, cutleaf groundcherry) differ between the
+  models by up to 21 points of mAP50 and should not be compared one by one.
+- Test scores are higher than validation scores for both models. The class mix
+  differs (carpetweed has 293 test boxes and 21 validation boxes), so validation
+  numbers did not predict the test numbers well.
+- YOLO11s is about 4 times slower on this CPU. Whether that matters is decided in
+  Phase 4 after ONNX export.
+
+## Decision
+
+YOLO11s remains the primary model, as written before the test run. The test results
+do not change that choice, but they show the accuracy advantage is small. YOLO11n
+stays as the fallback if CPU latency on the hosting tier is a problem. That is a
+deployment decision for Phase 4, made from ONNX Runtime latency measurements and
+not from test accuracy.
