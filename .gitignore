@@ -9,3 +9,4 @@ data/
 *.onnx
 .env
 reports/overlays/
+reports/test_eval/*/val_batch*
