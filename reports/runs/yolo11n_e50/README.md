@@ -5,8 +5,14 @@ Ultralytics 8.4.181, PyTorch 2.11.0+cu130. The exact settings are in `args.yaml`
 
 ```python
 YOLO("yolo11n.pt").train(
-    data="/content/data.yaml", epochs=50, imgsz=640, batch=16, workers=2,
-    cache="disk", patience=15, seed=42,
+    data="/content/data.yaml",
+    epochs=50,
+    imgsz=640,
+    batch=16,
+    workers=2,
+    cache="disk",
+    patience=15,
+    seed=42,
 )
 ```
 
