@@ -1,0 +1,10 @@
+model: yolo11n.pt
+name: yolo11n_e50
+epochs: 50
+imgsz: 640
+batch: 16
+workers: 2
+cache: disk
+patience: 15
+seed: 42
+plots: true
