@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["ruff", "mypy", "pytest", "pre-commit"]
+dev = ["ruff==0.17.0", "mypy", "pytest", "pre-commit"]
 data = ["pillow"]
 notebook = ["pandas", "matplotlib", "ipykernel"]
 
