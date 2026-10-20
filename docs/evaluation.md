@@ -168,19 +168,35 @@ aggregate gain should not be read as a general 2-point improvement.
 
 ### Error profile at a fixed confidence cutoff (845 images, 1,544 boxes)
 
-| | 640 @ 0.25 | 960 @ 0.25 | 960 @ 0.15 |
-|---|---|---|---|
-| Correct | 1,393 | 1,381 | 1,401 |
-| Confused (wrong species) | 51 | 33 | 37 |
-| Missed | 100 | 130 | 106 |
-| False positives | 375 | 194 | 313 |
-| Failures on boxes under 64 px | 75 | 82 | 67 |
+| | 640 @ 0.25 | 960 @ 0.25 | 640 @ 0.15 | 960 @ 0.15 | 960 @ 0.58 |
+|---|---|---|---|---|---|
+| Correct | 1,393 | 1,381 | 1,413 | 1,401 | 1,319 |
+| Confused (wrong species) | 51 | 33 | 55 | 37 | 23 |
+| Missed | 100 | 130 | 76 | 106 | 202 |
+| False positives | 375 | 194 | 556 | 313 | 60 |
+| Failures on boxes under 64 px | 75 | 82 | 62 | 67 | 124 |
+| Recall (correct / labelled boxes) | 0.902 | 0.894 | 0.915 | 0.907 | 0.854 |
+| Precision (correct / all detections) | 0.766 | 0.859 | 0.698 | 0.800 | 0.941 |
+| Detection F1 | 0.828 | 0.876 | 0.792 | 0.850 | 0.896 |
 
-At the same cutoff the 960 model makes fewer species mix-ups and about half as
-many false positives, but misses more weeds; 24 of its 30 extra misses reappear
-when the cutoff is lowered to 0.15. The 640 model was not run at 0.15, so the
-small-box figures cannot be compared like for like, and I do not claim that 960 px
-helps small weeds.
+Precision here counts wrong-species detections as false alarms, and detection F1
+is 2TP / (2TP + FP + FN) with a wrong-species detection counted as both a false
+alarm and a miss, so these differ from the Ultralytics figures above. The 640 px
+model was not run at 0.58.
+
+At both matched cutoffs the 960 model finds about the same number of weeds as the
+640 model (recall within one point) but makes roughly 200 fewer false detections,
+and its detection F1 is 5 to 6 points higher. That, and not any recall gain, is what
+drives its higher mAP. It fails slightly more often on boxes under 64 px, so there
+is no evidence that the larger input size helps small weeds. The recall in the
+headline table (0.837 against 0.777) is computed by Ultralytics at each model's own
+F1-optimal cutoff and answers a different question.
+
+The 0.58 column is the API default (see Decision). It was chosen from the
+validation F1 curve before this run, and it also has the best detection F1 on
+test. It trades recall for precision: 202 weeds are missed, with the largest
+failure counts for carpetweed (67 of 293 boxes), waterhemp (47 of 385) and ragweed
+(41 of 140).
 
 ### Main failure causes
 1. Carpetweed is missed on clearly visible plants: 41 to 56 failures out of 293
@@ -195,11 +211,17 @@ Some false positives may be unlabelled real weeds. Only a handful of images were
 inspected, so this is not quantified.
 
 ### Decision
-The 960 px model is carried into Phase 4 as the primary model, with these caveats:
-the evidence for it over 640 px is modest (one run each, a small validation gain,
-a test gain concentrated in rare classes), and it costs about 38% more CPU latency.
-On the largest classes the two are nearly tied, so if ONNX Runtime latency on the
-hosting tier is a problem, the 640 px model is a reasonable fallback.
+The 960 px model is carried into Phase 4 as the primary model. At matched
+confidence cutoffs it finds about as many weeds as the 640 px model with roughly
+half as many false alarms and fewer species mix-ups, and its detection F1 is 5 to 6
+points higher. Against that, it does not find more weeds, does not help small
+weeds, costs about 38% more CPU latency, and its mAP gain is concentrated in rare
+classes. If ONNX Runtime latency on the hosting tier is a problem, the 640 px model
+is a reasonable fallback.
 
-The default confidence threshold for the API will be chosen from the validation
-F1 curve, not from the 0.25 versus 0.15 comparison above, which is descriptive only.
+The default confidence threshold for the API is 0.58, taken from the peak of the
+F1-confidence curve on the validation set (all-classes F1 0.85 at 0.577; the curve
+is nearly flat between about 0.25 and 0.75). The 0.25 versus 0.15 comparison above
+is descriptive only. Carpetweed is the exception: its F1 on validation peaks near
+0.14 and declines as the threshold rises, so carpetweed detections are the ones
+most likely to be lost at the default.

@@ -17,7 +17,7 @@ mAP@50 0.928, mAP@50-95 0.871, precision 0.952, recall 0.837. Per-class results,
 - Small weeds (under about 64px at 640px input) are missed far more often than large ones. Ragweed recall is 0.65.
 - Eclipta, carpetweed, palmer amaranth and purslane are sometimes labelled as waterhemp, mostly at lower confidence.
 - Rare classes (sicklepod, cutleaf groundcherry, goosegrass, prickly sida) have few test examples, so their scores are uncertain.
-- The confidence threshold trades missed weeds against false alarms: at 0.25 there were 130 misses and 194 false positives on the test set, at 0.15 there were 106 and 313.
+- The confidence threshold trades missed weeds against false alarms. At the default of 0.58 (the peak of the validation F1 curve) the model found 85% of the labelled weeds with 94% precision on the test set; 202 weeds were missed, mostly carpetweed, waterhemp and ragweed. At 0.25 it found 89% with 86% precision.
 
 ## Not for
 - Herbicide or spraying decisions, or any automated action without human review.
