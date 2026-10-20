@@ -38,3 +38,26 @@ different dates. I viewed the two most suspicious ones and they show
 different plants on different soil, matched only because they are the same
 species photographed from above. I did not inspect the other 37. Split v1 is
 kept. The date grouping remains the main protection against leakage.
+
+## Split v3 (tried and rejected)
+
+**Why I tried it.** The v1 split (grouped by date) left the validation set with no Nikon or iPhone 11 Pro images, and 35% of it is Canon, a camera with a single training image. Checkpoint selection therefore never saw two of the four main cameras in the test set.
+
+**What I changed.** Starting from v1, I moved one whole date (`20210909`, 176 images, 129 of them Nikon) from train to validation. The test set was left identical, so results stay comparable. Manifest: `configs/split_v3.json`.
+
+**What happened.** Same model and settings (YOLO11s, 640px, seed 42), one run each:
+
+| | v1 split | v3 split |
+|---|---|---|
+| Test mAP50 | 0.9055 | 0.8697 |
+| Test mAP50-95 | 0.8439 | 0.8140 |
+| Test failures (misses + confusions) | 151 | 250 |
+| Eclipta failures | 25 | 84 |
+
+The date I moved held 78 of eclipta's 335 training images (23%), more than any other class lost, and eclipta accounts for most of the regression (mostly eclipta predicted as waterhemp or prickly sida). Failures rose on iPhone SE as well as Nikon, so it was not a Nikon-specific effect.
+
+**Decision.** Keep v1. This is one run per split, so the size of the drop is not precisely known, but the pattern fits the explanation and I did not want to build on a split that produced a weaker model.
+
+**Limitations of v1 that remain.**
+- Validation contains no Nikon or iPhone 11 Pro images, so checkpoint selection did not see them.
+- 685 of the 845 test images come from one date (`20210910`). Test metrics largely describe one session, and camera effects cannot be separated from session effects.

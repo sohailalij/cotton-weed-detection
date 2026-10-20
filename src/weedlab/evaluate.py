@@ -46,14 +46,16 @@ def markdown_table(rows: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def cpu_latency(model: Any, images: list[Path], warmup: int = 5) -> dict[str, float]:
+def cpu_latency(
+    model: Any, images: list[Path], warmup: int = 5, imgsz: int = 640
+) -> dict[str, float]:
     """Wall time of one predict() call per image, including decode and postprocess."""
     for path in images[:warmup]:
-        model.predict(str(path), imgsz=640, device="cpu", verbose=False)
+        model.predict(str(path), imgsz=imgsz, device="cpu", verbose=False)
     times: list[float] = []
     for path in images[warmup:]:
         start = time.perf_counter()
-        model.predict(str(path), imgsz=640, device="cpu", verbose=False)
+        model.predict(str(path), imgsz=imgsz, device="cpu", verbose=False)
         times.append((time.perf_counter() - start) * 1000)
     times.sort()
     return {
@@ -69,6 +71,7 @@ def main() -> None:
     ap.add_argument("--data-root", type=Path, default=Path("data/yolo"))
     ap.add_argument("--out", type=Path, default=Path("reports/test_eval"))
     ap.add_argument("--latency-images", type=int, default=50)
+    ap.add_argument("--imgsz", type=int, default=640)
     args = ap.parse_args()
 
     from ultralytics import YOLO
@@ -82,7 +85,7 @@ def main() -> None:
         results = model.val(
             data=str(data_yaml),
             split="test",
-            imgsz=640,
+            imgsz=args.imgsz,
             batch=16,
             device="cpu",
             workers=0,
@@ -101,7 +104,7 @@ def main() -> None:
             "precision": round(float(results.box.mp), 4),
             "recall": round(float(results.box.mr), 4),
             "per_class": rows,
-            "cpu_latency": cpu_latency(model, latency_set),
+            "cpu_latency": cpu_latency(model, latency_set, imgsz=args.imgsz),
             "versions": {
                 "python": platform.python_version(),
                 "ultralytics": version("ultralytics"),

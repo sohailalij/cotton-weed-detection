@@ -10,3 +10,5 @@ data/
 .env
 reports/overlays/
 reports/test_eval/*/val_batch*
+reports/error_analysis*/*/worst/
+scratch/
