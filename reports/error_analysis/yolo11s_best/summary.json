@@ -1,0 +1,87 @@
+{
+ "model": "yolo11s_best.pt",
+ "conf": 0.25,
+ "match_iou": 0.5,
+ "images": 845,
+ "gt_boxes": 1544,
+ "ok": 1393,
+ "confused": 51,
+ "missed": 100,
+ "false_positive": 375,
+ "failures_by_gt_class": {
+  "ragweed": 21,
+  "purslane": 6,
+  "cutleaf_groundcherry": 3,
+  "sicklepod": 1,
+  "spotted_spurge": 8,
+  "waterhemp": 23,
+  "carpetweed": 42,
+  "palmer_amaranth": 10,
+  "goosegrass": 6,
+  "eclipta": 25,
+  "prickly_sida": 4,
+  "morning_glory": 2
+ },
+ "top_confusions": [
+  [
+   "eclipta",
+   "waterhemp",
+   12
+  ],
+  [
+   "carpetweed",
+   "waterhemp",
+   7
+  ],
+  [
+   "palmer_amaranth",
+   "waterhemp",
+   5
+  ],
+  [
+   "purslane",
+   "waterhemp",
+   4
+  ],
+  [
+   "palmer_amaranth",
+   "prickly_sida",
+   3
+  ],
+  [
+   "eclipta",
+   "purslane",
+   3
+  ],
+  [
+   "cutleaf_groundcherry",
+   "prickly_sida",
+   2
+  ],
+  [
+   "waterhemp",
+   "eclipta",
+   2
+  ],
+  [
+   "goosegrass",
+   "waterhemp",
+   2
+  ],
+  [
+   "sicklepod",
+   "spotted_spurge",
+   1
+  ]
+ ],
+ "all_gt_by_size": {
+  ">=64px": 1273,
+  "32-64px": 197,
+  "<32px": 74
+ },
+ "gt_failures_by_size": {
+  ">=64px": 76,
+  "32-64px": 48,
+  "<32px": 27
+ }
+}
