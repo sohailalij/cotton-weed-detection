@@ -1,0 +1,36 @@
+# Model card: cotton weed detector
+
+## Model
+YOLO11s object detector (about 9.4 million parameters) fine-tuned from the Ultralytics pretrained weights on CottonWeedDet12. Trained at 960px for 50 epochs (seed 42, batch 8, AdamW chosen automatically, early stopping patience 15, which did not trigger) on a free Colab T4 in about 2 hours. Output: a box, a species label (one of 12) and a confidence for each detected weed.
+
+## Intended use
+Research and portfolio demonstration of weed detection in close-up photos of cotton plants, for example a scout counting weed species in a photo. A human should review the output.
+
+## Training and evaluation data
+CottonWeedDet12 (Dang et al. 2023; Zenodo record 7535814): 5,648 images and 9,370 boxes across 12 weed species, taken with smartphones and hand-held cameras in southern US cotton fields from June to September 2021. Every image contains at least one weed, and there are no weed-free images. Images were split by photo date (v1 manifest, `configs/split_v1.json`): 3,988 train, 815 validation, 845 test.
+
+## Performance (test split, 845 images)
+mAP@50 0.928, mAP@50-95 0.871, precision 0.952, recall 0.837. Per-class results, error analysis and latency are in `docs/evaluation.md`. The gain over the same model at 640 px is concentrated in the rarer classes; on the six largest classes the two are nearly tied.
+
+## Known failure modes
+- Carpetweed is missed frequently even when the plant is clearly visible (recall 0.75).
+- Small weeds (under about 64px at 640px input) are missed far more often than large ones. Ragweed recall is 0.65.
+- Eclipta, carpetweed, palmer amaranth and purslane are sometimes labelled as waterhemp, mostly at lower confidence.
+- Rare classes (sicklepod, cutleaf groundcherry, goosegrass, prickly sida) have few test examples, so their scores are uncertain.
+- The confidence threshold trades missed weeds against false alarms: at 0.25 there were 130 misses and 194 false positives on the test set, at 0.15 there were 106 and 313.
+
+## Not for
+- Herbicide or spraying decisions, or any automated action without human review.
+- Other crops, other regions or seasons, wide field views, or drone imagery. The training data is close-up single-plant photos from one region and one growing season, and the model has not been tested on anything else.
+- Counting plants precisely or measuring weed density from uncalibrated photos.
+- Commercial use (see licensing).
+
+## Data limitations
+- Test scores mostly reflect one photo session (685 of 845 images share a date).
+- The validation set has no Nikon or iPhone 11 Pro images and is 35% Canon, a camera with one training image. Details in `docs/data_notes.md`.
+- Labels come from the dataset authors. Some unlabelled weeds may exist, which would count as false positives.
+
+## Licensing
+- Ultralytics YOLO is released under AGPL-3.0.
+- The dataset is licensed CC BY-NC 4.0 (non-commercial), according to its Hugging Face dataset card. Anything trained on it should be treated as non-commercial unless the rights holders give separate permission.
+- Citation: Dang, F., Chen, D., Lu, Y., Li, Z. (2023). YOLOWeeds: A novel benchmark of YOLO object detectors for multi-class weed detection in cotton production systems. Computers and Electronics in Agriculture 205, 107655. Dataset DOI: 10.5281/zenodo.7535814.
