@@ -6,6 +6,7 @@ import argparse
 import csv
 import json
 from collections import Counter
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -115,6 +116,22 @@ def draw_overlay(path: Path, gt: GtList, preds: PredList, out: Path) -> None:
     im.save(out, quality=85)
 
 
+def predict_in_chunks(
+    model: Any, images: list[Path], conf: float, chunk: int = 8, imgsz: int = 640
+) -> Iterator[tuple[Path, Any]]:
+    """Run the model a few images at a time so memory stays small."""
+    for start in range(0, len(images), chunk):
+        part = images[start : start + chunk]
+        results = model.predict(
+            source=[str(p) for p in part],
+            conf=conf,
+            imgsz=imgsz,
+            device="cpu",
+            verbose=False,
+        )
+        yield from zip(part, results, strict=True)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", type=Path, required=True)
@@ -122,6 +139,7 @@ def main() -> None:
     ap.add_argument("--out", type=Path, default=Path("reports/error_analysis"))
     ap.add_argument("--conf", type=float, default=0.25)
     ap.add_argument("--match-iou", type=float, default=0.5)
+    ap.add_argument("--imgsz", type=int, default=640)
     ap.add_argument("--top", type=int, default=40)
     args = ap.parse_args()
 
@@ -138,15 +156,9 @@ def main() -> None:
     per_image: Counter[str] = Counter()
     detail: dict[str, tuple[GtList, PredList]] = {}
 
-    results = model.predict(
-        source=[str(p) for p in images],
-        conf=args.conf,
-        imgsz=640,
-        device="cpu",
-        stream=True,
-        verbose=False,
-    )
-    for n, (path, res) in enumerate(zip(images, results, strict=True), start=1):
+    for n, (path, res) in enumerate(
+        predict_in_chunks(model, images, args.conf, imgsz=args.imgsz), start=1
+    ):
         img_h, img_w = res.orig_shape
         label_boxes, _ = parse_label_file(args.data_root / "labels" / "test" / f"{path.stem}.txt")
         gt: GtList = [
