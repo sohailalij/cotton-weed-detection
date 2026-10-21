@@ -20,6 +20,7 @@ class Settings:
     max_pixels: int = 50_000_000
     cors_origins: tuple[str, ...] = DEFAULT_ORIGINS
     database_url: str | None = None
+    rate_limit_per_minute: int = 10
 
     @property
     def model_name(self) -> str:
@@ -45,9 +46,17 @@ class Settings:
         if "*" in origins:
             raise RuntimeError("WEEDLAB_CORS_ORIGINS must list origins, not '*'")
         max_mb = float(os.environ.get("WEEDLAB_MAX_UPLOAD_MB", "15"))
+        raw_rate = os.environ.get("WEEDLAB_RATE_LIMIT_PER_MINUTE", "10")
+        try:
+            rate = int(raw_rate)
+        except ValueError:
+            rate = 0
+        if rate < 1:
+            raise RuntimeError("WEEDLAB_RATE_LIMIT_PER_MINUTE must be a positive integer")
         return cls(
             model_path=model_path,
             max_upload_bytes=int(max_mb * 1024 * 1024),
             cors_origins=origins,
             database_url=database_url,
+            rate_limit_per_minute=rate,
         )

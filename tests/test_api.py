@@ -254,3 +254,27 @@ def test_detect_returns_503_when_the_database_is_unavailable() -> None:
     engine = make_engine("sqlite://")  # no tables created, so saving fails
     client = TestClient(create_app(Settings(metrics_path=None), FakeDetector(), engine))
     assert post(client, image_bytes()).status_code == 503
+
+
+def test_detect_is_rate_limited_per_client() -> None:
+    client, _ = make_client(rate_limit_per_minute=2)
+    assert post(client, image_bytes()).status_code == 200
+    assert post(client, image_bytes()).status_code == 200
+    blocked = post(client, image_bytes())
+    assert blocked.status_code == 429
+    assert int(blocked.headers["Retry-After"]) >= 1
+    assert client.get("/health").status_code == 200
+    assert client.get("/v1/detections").status_code == 200
+
+
+@pytest.mark.parametrize("value", ["0", "-3", "abc"])
+def test_settings_reject_bad_rate_limit(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, value: str
+) -> None:
+    model = tmp_path / "m.onnx"
+    model.write_bytes(b"x")
+    monkeypatch.setenv("WEEDLAB_MODEL_PATH", str(model))
+    monkeypatch.setenv("WEEDLAB_DATABASE_URL", "sqlite://")
+    monkeypatch.setenv("WEEDLAB_RATE_LIMIT_PER_MINUTE", value)
+    with pytest.raises(RuntimeError, match="RATE_LIMIT"):
+        Settings.from_env()
