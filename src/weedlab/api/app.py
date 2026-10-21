@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Annotated, Protocol
 
 import numpy as np
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi import Path as PathParam
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -19,6 +19,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
 from weedlab.api.db import make_engine, make_session_factory
+from weedlab.api.ratelimit import RateLimiter
 from weedlab.api.schemas import (
     Box,
     DetectionDetail,
@@ -110,6 +111,7 @@ def create_app(
     settings: Settings | None = None,
     detector: DetectorLike | None = None,
     engine: Engine | None = None,
+    limiter: RateLimiter | None = None,
 ) -> FastAPI:
     cfg = settings or (Settings() if detector is not None else Settings.from_env())
     if detector is None:
@@ -123,6 +125,7 @@ def create_app(
     model: DetectorLike = detector
     sessions = make_session_factory(engine)
     metrics = load_metrics(cfg.metrics_path)
+    rate_limiter: RateLimiter = limiter or RateLimiter(cfg.rate_limit_per_minute)
 
     app = FastAPI(title="Weed detection API", version="0.2.0")
     app.add_middleware(
@@ -148,9 +151,18 @@ def create_app(
 
     @app.post("/v1/detect", response_model=DetectResponse)
     def detect(
+        request: Request,
         file: Annotated[UploadFile, File(description="JPEG, PNG or WEBP image")],
         conf: Annotated[float | None, Query(ge=0.01, le=0.99)] = None,
     ) -> DetectResponse:
+        client_key = request.client.host if request.client else "unknown"
+        wait = rate_limiter.check(client_key)
+        if wait is not None:
+            raise HTTPException(
+                status_code=429,
+                detail="rate limit exceeded",
+                headers={"Retry-After": str(math.ceil(wait))},
+            )
         data = file.file.read(cfg.max_upload_bytes + 1)
         if len(data) > cfg.max_upload_bytes:
             raise HTTPException(status_code=413, detail="upload is too large")
