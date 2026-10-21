@@ -225,3 +225,23 @@ is nearly flat between about 0.25 and 0.75). The 0.25 versus 0.15 comparison abo
 is descriptive only. Carpetweed is the exception: its F1 on validation peaks near
 0.14 and declines as the threshold rises, so carpetweed detections are the ones
 most likely to be lost at the default.
+
+## Serving on a CPU (ONNX Runtime)
+
+The 960 px model is exported to ONNX (38.2 MB, dynamic height and width) and run
+with ONNX Runtime through `src/weedlab/inference.py`, which needs only NumPy,
+Pillow and ONNX Runtime.
+
+Agreement with PyTorch on all 845 test images at confidence 0.58: PyTorch makes
+1,403 detections and ONNX makes 1,398. Of those, 1,390 match in both directions
+(same class, box overlap of at least 0.9), which is 99.1% of the PyTorch detections
+and 99.4% of the ONNX ones. The largest confidence difference between matched
+detections is 0.076.
+
+Speed: ONNX Runtime was faster than PyTorch in all three runs, by 1.9, 1.9 and 2.9
+times. The ratio changed between runs and I have not isolated why. Absolute times
+varied a lot on the same laptop (the 845-image run was about eight times slower than
+the others), so I only record the quietest run: 50 images at confidence 0.58, median
+166 ms for ONNX against 473 ms for PyTorch, 95th percentile 234 ms against 666 ms,
+including image decoding and preprocessing at 960 px. These are one run on a
+development laptop and say nothing about hosted hardware.
