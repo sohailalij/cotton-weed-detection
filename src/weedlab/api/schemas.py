@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -20,6 +22,7 @@ class DetectionOut(BaseModel):
 
 
 class DetectResponse(BaseModel):
+    id: int
     image_width: int
     image_height: int
     conf_used: float
@@ -49,3 +52,35 @@ class ModelInfo(BaseModel):
 class Health(BaseModel):
     status: str
     model_loaded: bool
+
+
+class DetectionSummary(BaseModel):
+    id: int
+    created_at: datetime
+    model_name: str
+    image_width: int
+    image_height: int
+    conf_used: float
+    count: int
+    box_coverage: float
+    counts_by_class: dict[str, int]
+
+
+class DetectionDetail(DetectionSummary):
+    detections: list[DetectionOut]
+
+
+class DetectionPage(BaseModel):
+    items: list[DetectionSummary]
+    total: int
+    limit: int
+    offset: int
+
+
+class Stats(BaseModel):
+    start: datetime | None
+    end: datetime | None
+    detections: int
+    weeds_found: int
+    mean_box_coverage: float | None
+    counts_by_class: dict[str, int]

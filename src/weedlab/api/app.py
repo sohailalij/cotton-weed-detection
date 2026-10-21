@@ -5,27 +5,43 @@ from __future__ import annotations
 import json
 import math
 from collections import Counter
+from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 from typing import Annotated, Protocol
 
 import numpy as np
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import Path as PathParam
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, ImageOps, UnidentifiedImageError
+from sqlalchemy.engine import Engine
+from sqlalchemy.exc import SQLAlchemyError
 
+from weedlab.api.db import make_engine, make_session_factory
 from weedlab.api.schemas import (
     Box,
+    DetectionDetail,
     DetectionOut,
+    DetectionPage,
     DetectResponse,
     Health,
     HeldOutMetrics,
     ModelInfo,
+    Stats,
 )
 from weedlab.api.settings import Settings
+from weedlab.api.store import (
+    as_utc,
+    compute_stats,
+    get_detection,
+    list_detections,
+    save_detection,
+)
 from weedlab.inference import Detection, Detector
 
 ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP"}
+MAX_ID = 2_147_483_647
 
 
 class DetectorLike(Protocol):
@@ -90,16 +106,25 @@ def load_metrics(path: Path | None) -> HeldOutMetrics | None:
     )
 
 
-def create_app(settings: Settings | None = None, detector: DetectorLike | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    detector: DetectorLike | None = None,
+    engine: Engine | None = None,
+) -> FastAPI:
     cfg = settings or (Settings() if detector is not None else Settings.from_env())
     if detector is None:
         if cfg.model_path is None:
             raise RuntimeError("no model path configured")
         detector = Detector(cfg.model_path, imgsz=cfg.imgsz)
+    if engine is None:
+        if cfg.database_url is None:
+            raise RuntimeError("no database configured")
+        engine = make_engine(cfg.database_url)
     model: DetectorLike = detector
+    sessions = make_session_factory(engine)
     metrics = load_metrics(cfg.metrics_path)
 
-    app = FastAPI(title="Weed detection API", version="0.1.0")
+    app = FastAPI(title="Weed detection API", version="0.2.0")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(cfg.cors_origins),
@@ -134,27 +159,66 @@ def create_app(settings: Settings | None = None, detector: DetectorLike | None =
         image = read_image(data, cfg.max_pixels)
         used = cfg.default_conf if conf is None else conf
         found = model.detect(image, conf=used)
+        out = [
+            DetectionOut(
+                box=Box(
+                    x1=round(d.box[0], 1),
+                    y1=round(d.box[1], 1),
+                    x2=round(d.box[2], 1),
+                    y2=round(d.box[3], 1),
+                ),
+                confidence=round(d.score, 4),
+                class_id=d.class_id,
+                class_name=d.class_name,
+            )
+            for d in found
+        ]
+        coverage = box_coverage([d.box for d in found], image.width, image.height)
+        try:
+            with sessions() as session:
+                new_id = save_detection(
+                    session,
+                    model_name=cfg.model_name,
+                    width=image.width,
+                    height=image.height,
+                    conf=used,
+                    coverage=coverage,
+                    detections=out,
+                )
+        except SQLAlchemyError as exc:
+            raise HTTPException(status_code=503, detail="could not save the result") from exc
         return DetectResponse(
+            id=new_id,
             image_width=image.width,
             image_height=image.height,
             conf_used=used,
             count=len(found),
             counts_by_class=dict(Counter(d.class_name for d in found)),
-            box_coverage=box_coverage([d.box for d in found], image.width, image.height),
-            detections=[
-                DetectionOut(
-                    box=Box(
-                        x1=round(d.box[0], 1),
-                        y1=round(d.box[1], 1),
-                        x2=round(d.box[2], 1),
-                        y2=round(d.box[3], 1),
-                    ),
-                    confidence=round(d.score, 4),
-                    class_id=d.class_id,
-                    class_name=d.class_name,
-                )
-                for d in found
-            ],
+            box_coverage=coverage,
+            detections=out,
         )
+
+    @app.get("/v1/detections", response_model=DetectionPage)
+    def detections(
+        limit: Annotated[int, Query(ge=1, le=100)] = 20,
+        offset: Annotated[int, Query(ge=0)] = 0,
+    ) -> DetectionPage:
+        with sessions() as session:
+            return list_detections(session, limit, offset)
+
+    @app.get("/v1/detections/{detection_id}", response_model=DetectionDetail)
+    def detection(detection_id: Annotated[int, PathParam(ge=1, le=MAX_ID)]) -> DetectionDetail:
+        with sessions() as session:
+            found = get_detection(session, detection_id)
+        if found is None:
+            raise HTTPException(status_code=404, detail="detection not found")
+        return found
+
+    @app.get("/v1/stats", response_model=Stats)
+    def stats(start: datetime | None = None, end: datetime | None = None) -> Stats:
+        if start is not None and end is not None and as_utc(start) > as_utc(end):
+            raise HTTPException(status_code=422, detail="start must not be after end")
+        with sessions() as session:
+            return compute_stats(session, start, end)
 
     return app
