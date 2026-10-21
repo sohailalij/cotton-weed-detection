@@ -19,6 +19,7 @@ class Settings:
     max_upload_bytes: int = 15 * 1024 * 1024
     max_pixels: int = 50_000_000
     cors_origins: tuple[str, ...] = DEFAULT_ORIGINS
+    database_url: str | None = None
 
     @property
     def model_name(self) -> str:
@@ -32,6 +33,9 @@ class Settings:
         model_path = Path(raw_path)
         if not model_path.is_file():
             raise RuntimeError(f"model file not found: {model_path}")
+        database_url = os.environ.get("WEEDLAB_DATABASE_URL")
+        if not database_url:
+            raise RuntimeError("WEEDLAB_DATABASE_URL is not set")
         raw_origins = os.environ.get("WEEDLAB_CORS_ORIGINS")
         origins = (
             tuple(o.strip() for o in raw_origins.split(",") if o.strip())
@@ -45,4 +49,5 @@ class Settings:
             model_path=model_path,
             max_upload_bytes=int(max_mb * 1024 * 1024),
             cors_origins=origins,
+            database_url=database_url,
         )
