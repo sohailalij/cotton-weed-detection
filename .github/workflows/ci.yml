@@ -15,7 +15,7 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: Install
-        run: pip install -e ".[dev,data,serve]"
+        run: pip install -e ".[dev,data,serve,api]"
       - name: Lint
         run: ruff check .
       - name: Format check
