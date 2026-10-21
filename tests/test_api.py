@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -42,7 +43,8 @@ def image_bytes(fmt: str = "JPEG", size: tuple[int, int] = (200, 100)) -> bytes:
 
 def make_client(**overrides: Any) -> tuple[TestClient, FakeDetector]:
     fake = FakeDetector()
-    engine = make_engine("sqlite://")
+    engine = make_engine(os.environ.get("WEEDLAB_TEST_DATABASE_URL", "sqlite://"))
+    Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     settings = Settings(metrics_path=None, **overrides)
     return TestClient(create_app(settings, fake, engine)), fake
