@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from io import BytesIO
 from pathlib import Path
@@ -278,3 +279,13 @@ def test_settings_reject_bad_rate_limit(
     monkeypatch.setenv("WEEDLAB_RATE_LIMIT_PER_MINUTE", value)
     with pytest.raises(RuntimeError, match="RATE_LIMIT"):
         Settings.from_env()
+
+
+def test_saved_openapi_spec_matches_the_app() -> None:
+    client, _ = make_client()
+    spec_file = Path(__file__).resolve().parents[1] / "frontend" / "openapi.json"
+    saved = json.loads(spec_file.read_text(encoding="utf-8"))
+    assert client.get("/openapi.json").json() == saved, (
+        "frontend/openapi.json is out of date. Regenerate it from the running API, "
+        "then run npm run gen-api in frontend/"
+    )
