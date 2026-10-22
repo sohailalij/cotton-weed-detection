@@ -5,7 +5,16 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, create_engine
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    LargeBinary,
+    String,
+    create_engine,
+)
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -54,6 +63,15 @@ class ClassCount(Base):
     class_name: Mapped[str] = mapped_column(String(50), primary_key=True)
     n: Mapped[int] = mapped_column(Integer)
     detection: Mapped[DetectionRecord] = relationship(back_populates="counts")
+
+
+class DetectionImage(Base):
+    __tablename__ = "detection_images"
+
+    detection_id: Mapped[int] = mapped_column(
+        ForeignKey("detections.id", ondelete="CASCADE"), primary_key=True
+    )
+    jpeg: Mapped[bytes] = mapped_column(LargeBinary)
 
 
 def make_engine(url: str) -> Engine:
