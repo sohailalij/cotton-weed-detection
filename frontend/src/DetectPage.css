@@ -1,0 +1,57 @@
+.detect {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+  text-align: left;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.stage {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.stage img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.box {
+  position: absolute;
+  border: 3px solid;
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+.results {
+  margin-top: 1rem;
+}
+
+.legend {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.swatch {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.error {
+  color: #b00020;
+}
