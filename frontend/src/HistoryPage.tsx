@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { api, ApiError } from './api'
+import HistoryDetail from './HistoryDetail'
 import './HistoryPage.css'
 
 type DetectionList = Awaited<ReturnType<typeof api.detections>>
@@ -50,6 +51,7 @@ export default function HistoryPage({
   const [error, setError] = useState<string | null>(null)
   const [confirming, setConfirming] = useState<number | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [openId, setOpenId] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -89,6 +91,10 @@ export default function HistoryPage({
   const first = total === 0 ? 0 : offset + 1
   const last = Math.min(offset + PAGE_SIZE, total)
 
+  if (openId !== null) {
+    return <HistoryDetail id={openId} onBack={() => setOpenId(null)} />
+  }
+
   return (
     <section className="history">
       <h2>Saved detections</h2>
@@ -124,6 +130,13 @@ export default function HistoryPage({
                   </span>
                 </div>
                 <div className="history-actions">
+                  <button
+                    type="button"
+                    onClick={() => setOpenId(row.id)}
+                    aria-label={`Open detection ${row.id}`}
+                  >
+                    View
+                  </button>
                   {confirming === row.id ? (
                     <>
                       <button type="button" onClick={() => confirmDelete(row.id)} disabled={deleting}>

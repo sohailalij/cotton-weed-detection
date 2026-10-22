@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { atLeast, boxStyle, countBySpecies, coverage } from './overlay'
+import { atLeast, boxStyle, countBySpecies, coverage, speciesColor } from './overlay'
 
 describe('boxStyle', () => {
   it('converts pixel boxes to percentages of the image', () => {
@@ -52,5 +52,13 @@ describe('coverage', () => {
 
   it('clips boxes to the image', () => {
     expect(coverage([{ x1: -50, y1: -50, x2: 50, y2: 50 }], 100, 100)).toBe(0.25)
+  })
+})
+
+describe('speciesColor', () => {
+  it('gives each of the 12 species its own color and wraps around', () => {
+    const colors = Array.from({ length: 12 }, (_, i) => speciesColor(i))
+    expect(new Set(colors).size).toBe(12)
+    expect(speciesColor(12)).toBe(speciesColor(0))
   })
 })

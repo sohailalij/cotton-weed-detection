@@ -1,0 +1,44 @@
+.detail {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+  text-align: left;
+}
+
+.detail-stage {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.detail-stage img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.detail-box {
+  position: absolute;
+  border: 3px solid;
+  box-sizing: border-box;
+}
+
+.detail-legend {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.detail-swatch {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.detail-error {
+  color: #b00020;
+}
