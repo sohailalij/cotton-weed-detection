@@ -5,10 +5,10 @@ from __future__ import annotations
 from collections import Counter
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, selectinload
 
-from weedlab.api.db import ClassCount, DetectionRecord
+from weedlab.api.db import ClassCount, DetectionImage, DetectionRecord
 from weedlab.api.schemas import (
     DetectionDetail,
     DetectionOut,
@@ -32,6 +32,7 @@ def save_detection(
     conf: float,
     coverage: float,
     detections: list[DetectionOut],
+    thumbnail: bytes | None = None,
 ) -> int:
     counts = Counter(d.class_name for d in detections)
     record = DetectionRecord(
@@ -45,6 +46,9 @@ def save_detection(
         counts=[ClassCount(class_name=name, n=n) for name, n in counts.items()],
     )
     session.add(record)
+    session.flush()
+    if thumbnail is not None:
+        session.add(DetectionImage(detection_id=record.id, jpeg=thumbnail))
     session.commit()
     return record.id
 
@@ -86,6 +90,21 @@ def get_detection(session: Session, detection_id: int) -> DetectionDetail | None
         **summary.model_dump(),
         detections=[DetectionOut.model_validate(b) for b in record.boxes],
     )
+
+
+def get_thumbnail(session: Session, detection_id: int) -> bytes | None:
+    row = session.get(DetectionImage, detection_id)
+    return None if row is None else row.jpeg
+
+
+def delete_detection(session: Session, detection_id: int) -> bool:
+    record = session.get(DetectionRecord, detection_id)
+    if record is None:
+        return False
+    session.execute(delete(DetectionImage).where(DetectionImage.detection_id == detection_id))
+    session.delete(record)
+    session.commit()
+    return True
 
 
 def compute_stats(session: Session, start: datetime | None, end: datetime | None) -> Stats:

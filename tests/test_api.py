@@ -289,3 +289,61 @@ def test_saved_openapi_spec_matches_the_app() -> None:
         "frontend/openapi.json is out of date. Regenerate it from the running API, "
         "then run npm run gen-api in frontend/"
     )
+
+
+def test_detect_stores_a_thumbnail_and_serves_it() -> None:
+    client, _ = make_client()
+    created = post(client, image_bytes(size=(2000, 1000))).json()
+    response = client.get(f"/v1/detections/{created['id']}/image")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/jpeg"
+    assert response.headers["cache-control"] == "private, max-age=3600"
+    assert Image.open(BytesIO(response.content)).size == (640, 320)
+
+
+def test_small_photo_thumbnail_is_not_enlarged() -> None:
+    client, _ = make_client()
+    created = post(client, image_bytes(size=(200, 100))).json()
+    response = client.get(f"/v1/detections/{created['id']}/image")
+    assert Image.open(BytesIO(response.content)).size == (200, 100)
+
+
+def test_thumbnail_for_missing_or_invalid_id() -> None:
+    client, _ = make_client()
+    assert client.get("/v1/detections/999/image").status_code == 404
+    assert client.get("/v1/detections/0/image").status_code == 422
+
+
+def test_delete_removes_detection_and_its_photo() -> None:
+    client, _ = make_client()
+    first = post(client, image_bytes()).json()["id"]
+    second = post(client, image_bytes()).json()["id"]
+    response = client.delete(f"/v1/detections/{first}")
+    assert response.status_code == 204
+    assert response.content == b""
+    assert client.get(f"/v1/detections/{first}").status_code == 404
+    assert client.get(f"/v1/detections/{first}/image").status_code == 404
+    assert client.get(f"/v1/detections/{second}/image").status_code == 200
+    assert client.get("/v1/detections").json()["total"] == 1
+    assert client.get("/v1/stats").json()["detections"] == 1
+
+
+def test_delete_missing_or_invalid_id() -> None:
+    client, _ = make_client()
+    assert client.delete("/v1/detections/999").status_code == 404
+    assert client.delete("/v1/detections/0").status_code == 422
+
+
+def test_cors_preflight_for_delete_only_from_listed_origin() -> None:
+    client, _ = make_client(cors_origins=("http://localhost:5173",))
+    ok = client.options(
+        "/v1/detections/1",
+        headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "DELETE"},
+    )
+    assert ok.status_code == 200
+    assert "DELETE" in ok.headers["access-control-allow-methods"]
+    other = client.options(
+        "/v1/detections/1",
+        headers={"Origin": "http://evil.example", "Access-Control-Request-Method": "DELETE"},
+    )
+    assert other.status_code == 400

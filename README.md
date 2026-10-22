@@ -38,9 +38,11 @@ curl -F "file=@photo.jpg" "http://localhost:8000/v1/detect?conf=0.58"
 
 | Method | Route | Purpose |
 |---|---|---|
-| POST | `/v1/detect` | Upload an image; returns boxes, species, scores and box coverage, and saves the result |
+| POST | `/v1/detect` | Upload an image; returns boxes, species, scores and box coverage, and saves the result with a resized copy of the photo |
 | GET | `/v1/detections` | Paginated history, newest first |
 | GET | `/v1/detections/{id}` | One saved result |
+| GET | `/v1/detections/{id}/image` | The saved photo as a JPEG, at most 640 px on the long side |
+| DELETE | `/v1/detections/{id}` | Delete a saved result and its photo |
 | GET | `/v1/stats` | Species counts and mean coverage, optionally between `start` and `end` |
 | GET | `/v1/model` | Model name, input size, classes and test metrics |
 | GET | `/health` | Liveness |
@@ -76,7 +78,8 @@ Training and evaluation need the extras `train` and `export` as well. The code i
 - Most test images (685 of 845) come from one photo date, so the test scores mostly describe one session.
 - Carpetweed is missed often even when clearly visible, and small weeds are missed far more than large ones.
 - The rate limiter is in memory and per process, so it resets on restart and does not coordinate between workers. It keys on the client address the app sees, so behind a proxy or Docker Desktop every client can share one counter unless forwarded addresses are configured.
-- Only metadata is stored for each detection, not the image.
+- Each detection is saved together with a JPEG copy of the photo, resized to at most 640 px on the long side (about 100 KB each). Photos are kept until they are deleted with `DELETE /v1/detections/{id}`, and there is no automatic expiry.
+- The service has no login. Anyone who can reach it can list, view and delete every saved detection and photo, so run it locally or behind your own access control, and do not expose it publicly with other people's photos.
 
 ## Licensing
 

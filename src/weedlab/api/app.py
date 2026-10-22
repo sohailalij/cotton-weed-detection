@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Annotated, Protocol
 
 import numpy as np
-from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, Request, Response, UploadFile
 from fastapi import Path as PathParam
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -35,10 +35,13 @@ from weedlab.api.settings import Settings
 from weedlab.api.store import (
     as_utc,
     compute_stats,
+    delete_detection,
     get_detection,
+    get_thumbnail,
     list_detections,
     save_detection,
 )
+from weedlab.api.thumbnail import make_thumbnail
 from weedlab.inference import Detection, Detector
 
 ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP"}
@@ -127,11 +130,11 @@ def create_app(
     metrics = load_metrics(cfg.metrics_path)
     rate_limiter: RateLimiter = limiter or RateLimiter(cfg.rate_limit_per_minute)
 
-    app = FastAPI(title="Weed detection API", version="0.2.0")
+    app = FastAPI(title="Weed detection API", version="0.3.0")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(cfg.cors_origins),
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["Content-Type"],
     )
 
@@ -186,6 +189,7 @@ def create_app(
             for d in found
         ]
         coverage = box_coverage([d.box for d in found], image.width, image.height)
+        thumbnail = make_thumbnail(image)
         try:
             with sessions() as session:
                 new_id = save_detection(
@@ -196,6 +200,7 @@ def create_app(
                     conf=used,
                     coverage=coverage,
                     detections=out,
+                    thumbnail=thumbnail,
                 )
         except SQLAlchemyError as exc:
             raise HTTPException(status_code=503, detail="could not save the result") from exc
@@ -225,6 +230,30 @@ def create_app(
         if found is None:
             raise HTTPException(status_code=404, detail="detection not found")
         return found
+
+    @app.get(
+        "/v1/detections/{detection_id}/image",
+        response_class=Response,
+        responses={200: {"content": {"image/jpeg": {}}, "description": "JPEG thumbnail"}},
+    )
+    def detection_image(detection_id: Annotated[int, PathParam(ge=1, le=MAX_ID)]) -> Response:
+        with sessions() as session:
+            jpeg = get_thumbnail(session, detection_id)
+        if jpeg is None:
+            raise HTTPException(status_code=404, detail="image not found")
+        return Response(
+            content=jpeg,
+            media_type="image/jpeg",
+            headers={"Cache-Control": "private, max-age=3600"},
+        )
+
+    @app.delete("/v1/detections/{detection_id}", status_code=204, response_class=Response)
+    def remove_detection(detection_id: Annotated[int, PathParam(ge=1, le=MAX_ID)]) -> Response:
+        with sessions() as session:
+            found = delete_detection(session, detection_id)
+        if not found:
+            raise HTTPException(status_code=404, detail="detection not found")
+        return Response(status_code=204)
 
     @app.get("/v1/stats", response_model=Stats)
     def stats(start: datetime | None = None, end: datetime | None = None) -> Stats:
