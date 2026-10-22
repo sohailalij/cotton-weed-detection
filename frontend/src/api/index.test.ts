@@ -78,4 +78,23 @@ describe('api client', () => {
     expect((error as ApiError).status).toBe(422)
     expect((error as ApiError).message).toBe('too big')
   })
+
+  it('deletes a detection and treats 204 as success', async () => {
+    const { api, calls } = makeApi(() => new Response(null, { status: 204 }))
+    await expect(api.remove(5)).resolves.toBeUndefined()
+    expect(calls[0].method).toBe('DELETE')
+    expect(new URL(calls[0].url).pathname).toBe('/v1/detections/5')
+  })
+
+  it('turns a failed delete into an ApiError', async () => {
+    const { api } = makeApi(() => jsonResponse({ detail: 'detection not found' }, 404))
+    const error = await api.remove(5).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).status).toBe(404)
+    expect((error as ApiError).message).toBe('detection not found')
+  })
+
+  it('builds image URLs without a double slash', () => {
+    expect(createApi('http://api.test/').imageUrl(7)).toBe('http://api.test/v1/detections/7/image')
+  })
 })

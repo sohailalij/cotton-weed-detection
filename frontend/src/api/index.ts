@@ -68,6 +68,15 @@ export function createApi(baseUrl: string, fetchImpl?: typeof fetch) {
         }),
       )
     },
+    async remove(id: number) {
+      const { error, response } = await client.DELETE('/v1/detections/{detection_id}', {
+        params: { path: { detection_id: id } },
+      })
+      if (!response.ok) throw new ApiError(response.status, describe(error, response.statusText))
+    },
+    imageUrl(id: number) {
+      return `${baseUrl.replace(/\/+$/, '')}/v1/detections/${id}/image`
+    },
     async stats(start?: string, end?: string) {
       return unwrap(await client.GET('/v1/stats', { params: { query: { start, end } } }))
     },
