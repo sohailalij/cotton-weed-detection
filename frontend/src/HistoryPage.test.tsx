@@ -14,7 +14,12 @@ vi.mock('./api', () => {
   }
   return {
     ApiError,
-    api: { detections: vi.fn(), remove: vi.fn(), imageUrl: (id: number) => `/img/${id}` },
+    api: {
+      detections: vi.fn(),
+      detection: vi.fn(),
+      remove: vi.fn(),
+      imageUrl: (id: number) => `/img/${id}`,
+    },
   }
 })
 
@@ -105,10 +110,7 @@ describe('HistoryPage', () => {
   })
 
   it('asks for confirmation, then deletes and reloads', async () => {
-    const list = vi
-      .fn()
-      .mockResolvedValueOnce(one())
-      .mockResolvedValueOnce(pageOf([], 0))
+    const list = vi.fn().mockResolvedValueOnce(one()).mockResolvedValueOnce(pageOf([], 0))
     const remove = vi.fn(() => Promise.resolve())
     render(<HistoryPage list={list} remove={remove} imageUrl={imageUrl} />)
     fireEvent.click(await screen.findByRole('button', { name: 'Delete detection 1' }))
@@ -172,5 +174,35 @@ describe('HistoryPage', () => {
     await screen.findByText('Showing 1 to 1 of 1')
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(api.detections).toHaveBeenCalledTimes(1)
+  })
+
+  it('opens a saved detection and comes back to the list', async () => {
+    vi.mocked(api.detection).mockResolvedValue({
+      id: 1,
+      created_at: '2026-10-21T09:54:54Z',
+      model_name: 'yolo11s_v1_960',
+      image_width: 200,
+      image_height: 100,
+      conf_used: 0.15,
+      count: 1,
+      box_coverage: 0.1,
+      counts_by_class: { ragweed: 1 },
+      detections: [
+        {
+          box: { x1: 0, y1: 0, x2: 100, y2: 50 },
+          confidence: 0.9,
+          class_id: 5,
+          class_name: 'ragweed',
+        },
+      ],
+    })
+    const list = vi.fn(() => Promise.resolve(one()))
+    render(<HistoryPage list={list} remove={vi.fn()} imageUrl={imageUrl} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Open detection 1' }))
+    expect(await screen.findByRole('heading', { name: 'Detection 1' })).toBeInTheDocument()
+    expect(api.detection).toHaveBeenCalledWith(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Back to the list' }))
+    expect(await screen.findByText('Showing 1 to 1 of 1')).toBeInTheDocument()
+    expect(list).toHaveBeenCalledTimes(1)
   })
 })

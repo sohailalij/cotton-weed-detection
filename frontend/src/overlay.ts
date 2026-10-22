@@ -52,3 +52,20 @@ export function coverage(boxes: Box[], width: number, height: number): number {
   for (const cell of mask) covered += cell
   return covered / (gridW * gridH)
 }
+
+const PALETTE = [
+  '#e6194b',
+  '#3cb44b',
+  '#4363d8',
+  '#f58231',
+  '#911eb4',
+  '#008080',
+  '#9a6324',
+  '#800000',
+  '#808000',
+  '#000075',
+  '#f032e6',
+  '#469990',
+]
+
+export const speciesColor = (classId: number) => PALETTE[classId % PALETTE.length] ?? '#000000'
