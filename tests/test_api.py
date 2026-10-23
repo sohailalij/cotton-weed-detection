@@ -347,3 +347,37 @@ def test_cors_preflight_for_delete_only_from_listed_origin() -> None:
         headers={"Origin": "http://evil.example", "Access-Control-Request-Method": "DELETE"},
     )
     assert other.status_code == 400
+
+
+def test_daily_stats_on_empty_history() -> None:
+    client, _ = make_client()
+    assert client.get("/v1/stats/daily").json()["days"] == []
+
+
+def test_daily_stats_add_up_over_saved_detections() -> None:
+    client, _ = make_client()
+    post(client, image_bytes())
+    post(client, image_bytes())
+    days = client.get("/v1/stats/daily").json()["days"]
+    assert len(days) == 1
+    assert days[0]["detections"] == 2
+    assert days[0]["weeds_found"] == 4
+    assert days[0]["counts_by_class"] == {"waterhemp": 2, "ragweed": 2}
+    assert days[0]["mean_box_coverage"] == pytest.approx(0.405)
+
+
+def test_daily_stats_respect_the_date_range() -> None:
+    client, _ = make_client()
+    post(client, image_bytes())
+    since = client.get("/v1/stats/daily", params={"start": "2000-01-01T00:00:00Z"}).json()
+    assert len(since["days"]) == 1
+    future = client.get("/v1/stats/daily", params={"start": "2999-01-01T00:00:00Z"}).json()
+    assert future["days"] == []
+    until = client.get("/v1/stats/daily", params={"end": "2000-01-01T00:00:00Z"}).json()
+    assert until["days"] == []
+
+
+def test_daily_stats_reject_start_after_end() -> None:
+    client, _ = make_client()
+    params = {"start": "2030-01-01T00:00:00Z", "end": "2020-01-01T00:00:00Z"}
+    assert client.get("/v1/stats/daily", params=params).status_code == 422

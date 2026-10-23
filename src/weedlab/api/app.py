@@ -22,6 +22,7 @@ from weedlab.api.db import make_engine, make_session_factory
 from weedlab.api.ratelimit import RateLimiter
 from weedlab.api.schemas import (
     Box,
+    DailySeries,
     DetectionDetail,
     DetectionOut,
     DetectionPage,
@@ -34,6 +35,7 @@ from weedlab.api.schemas import (
 from weedlab.api.settings import Settings
 from weedlab.api.store import (
     as_utc,
+    compute_daily,
     compute_stats,
     delete_detection,
     get_detection,
@@ -261,5 +263,12 @@ def create_app(
             raise HTTPException(status_code=422, detail="start must not be after end")
         with sessions() as session:
             return compute_stats(session, start, end)
+
+    @app.get("/v1/stats/daily", response_model=DailySeries)
+    def stats_daily(start: datetime | None = None, end: datetime | None = None) -> DailySeries:
+        if start is not None and end is not None and as_utc(start) > as_utc(end):
+            raise HTTPException(status_code=422, detail="start must not be after end")
+        with sessions() as session:
+            return compute_daily(session, start, end)
 
     return app

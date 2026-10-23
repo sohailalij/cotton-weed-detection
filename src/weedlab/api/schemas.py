@@ -84,3 +84,17 @@ class Stats(BaseModel):
     weeds_found: int
     mean_box_coverage: float | None
     counts_by_class: dict[str, int]
+
+
+class DailyStats(BaseModel):
+    day: str  # YYYY-MM-DD, in UTC
+    detections: int
+    weeds_found: int
+    mean_box_coverage: float
+    counts_by_class: dict[str, int]
+
+
+class DailySeries(BaseModel):
+    start: datetime | None
+    end: datetime | None
+    days: list[DailyStats]
