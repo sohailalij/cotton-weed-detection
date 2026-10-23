@@ -124,6 +124,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/stats/daily": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stats Daily */
+        get: operations["stats_daily_v1_stats_daily_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -146,6 +163,30 @@ export interface components {
             y1: number;
             /** Y2 */
             y2: number;
+        };
+        /** DailySeries */
+        DailySeries: {
+            /** Days */
+            days: components["schemas"]["DailyStats"][];
+            /** End */
+            end: string | null;
+            /** Start */
+            start: string | null;
+        };
+        /** DailyStats */
+        DailyStats: {
+            /** Counts By Class */
+            counts_by_class: {
+                [key: string]: number;
+            };
+            /** Day */
+            day: string;
+            /** Detections */
+            detections: number;
+            /** Mean Box Coverage */
+            mean_box_coverage: number;
+            /** Weeds Found */
+            weeds_found: number;
         };
         /** DetectResponse */
         DetectResponse: {
@@ -539,6 +580,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Stats"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stats_daily_v1_stats_daily_get: {
+        parameters: {
+            query?: {
+                start?: string | null;
+                end?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DailySeries"];
                 };
             };
             /** @description Validation Error */

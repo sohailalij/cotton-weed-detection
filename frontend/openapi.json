@@ -44,6 +44,84 @@
         "title": "Box",
         "type": "object"
       },
+      "DailySeries": {
+        "properties": {
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/DailyStats"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "days"
+        ],
+        "title": "DailySeries",
+        "type": "object"
+      },
+      "DailyStats": {
+        "properties": {
+          "counts_by_class": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts By Class",
+            "type": "object"
+          },
+          "day": {
+            "title": "Day",
+            "type": "string"
+          },
+          "detections": {
+            "title": "Detections",
+            "type": "integer"
+          },
+          "mean_box_coverage": {
+            "title": "Mean Box Coverage",
+            "type": "number"
+          },
+          "weeds_found": {
+            "title": "Weeds Found",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "day",
+          "detections",
+          "weeds_found",
+          "mean_box_coverage",
+          "counts_by_class"
+        ],
+        "title": "DailyStats",
+        "type": "object"
+      },
       "DetectResponse": {
         "properties": {
           "box_coverage": {
@@ -815,6 +893,70 @@
           }
         },
         "summary": "Stats"
+      }
+    },
+    "/v1/stats/daily": {
+      "get": {
+        "operationId": "stats_daily_v1_stats_daily_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "start",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailySeries"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stats Daily"
       }
     }
   }

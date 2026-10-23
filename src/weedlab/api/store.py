@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session, selectinload
 
 from weedlab.api.db import ClassCount, DetectionImage, DetectionRecord
 from weedlab.api.schemas import (
+    DailySeries,
+    DailyStats,
     DetectionDetail,
     DetectionOut,
     DetectionPage,
@@ -136,3 +138,44 @@ def compute_stats(session: Session, start: datetime | None, end: datetime | None
         mean_box_coverage=None if mean_cov is None else float(mean_cov),
         counts_by_class={name: int(n) for name, n in rows},
     )
+
+
+def compute_daily(session: Session, start: datetime | None, end: datetime | None) -> DailySeries:
+    """Per-day totals, with days taken in UTC. Only days that have detections appear."""
+    lo = as_utc(start) if start is not None else None
+    hi = as_utc(end) if end is not None else None
+    totals = select(DetectionRecord.created_at, DetectionRecord.count, DetectionRecord.box_coverage)
+    per_class = select(DetectionRecord.created_at, ClassCount.class_name, ClassCount.n).join(
+        ClassCount, ClassCount.detection_id == DetectionRecord.id
+    )
+    if lo is not None:
+        totals = totals.where(DetectionRecord.created_at >= lo)
+        per_class = per_class.where(DetectionRecord.created_at >= lo)
+    if hi is not None:
+        totals = totals.where(DetectionRecord.created_at <= hi)
+        per_class = per_class.where(DetectionRecord.created_at <= hi)
+
+    n_det: dict[str, int] = {}
+    weeds: dict[str, int] = {}
+    cover: dict[str, float] = {}
+    by_class: dict[str, dict[str, int]] = {}
+    for created, count, coverage in session.execute(totals):
+        day = as_utc(created).date().isoformat()
+        n_det[day] = n_det.get(day, 0) + 1
+        weeds[day] = weeds.get(day, 0) + int(count)
+        cover[day] = cover.get(day, 0.0) + float(coverage)
+    for created, name, n in session.execute(per_class):
+        counts = by_class.setdefault(as_utc(created).date().isoformat(), {})
+        counts[name] = counts.get(name, 0) + int(n)
+
+    days = [
+        DailyStats(
+            day=day,
+            detections=n_det[day],
+            weeds_found=weeds[day],
+            mean_box_coverage=cover[day] / n_det[day],
+            counts_by_class=by_class.get(day, {}),
+        )
+        for day in sorted(n_det)
+    ]
+    return DailySeries(start=lo, end=hi, days=days)
