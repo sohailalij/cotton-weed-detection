@@ -1,0 +1,17 @@
+.analytics {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.analytics-error {
+  color: #b00020;
+}
+
+.analytics-chart {
+  width: 100%;
+}

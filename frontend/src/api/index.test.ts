@@ -97,4 +97,16 @@ describe('api client', () => {
   it('builds image URLs without a double slash', () => {
     expect(createApi('http://api.test/').imageUrl(7)).toBe('http://api.test/v1/detections/7/image')
   })
+
+  it('asks for the daily series, with and without a date range', async () => {
+    const { api, calls } = makeApi(() => jsonResponse({ start: null, end: null, days: [] }))
+    const result = await api.statsDaily()
+    expect(result.days).toEqual([])
+    expect(new URL(calls[0].url).pathname).toBe('/v1/stats/daily')
+    expect(new URL(calls[0].url).search).toBe('')
+    await api.statsDaily('2026-10-01T00:00:00Z', '2026-10-31T00:00:00Z')
+    const query = new URL(calls[1].url).searchParams
+    expect(query.get('start')).toBe('2026-10-01T00:00:00Z')
+    expect(query.get('end')).toBe('2026-10-31T00:00:00Z')
+  })
 })

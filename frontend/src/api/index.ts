@@ -80,6 +80,9 @@ export function createApi(baseUrl: string, fetchImpl?: typeof fetch) {
     async stats(start?: string, end?: string) {
       return unwrap(await client.GET('/v1/stats', { params: { query: { start, end } } }))
     },
+    async statsDaily(start?: string, end?: string) {
+      return unwrap(await client.GET('/v1/stats/daily', { params: { query: { start, end } } }))
+    },
   }
 }
 

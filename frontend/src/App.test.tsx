@@ -9,9 +9,10 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'Weed detection' })).toBeInTheDocument()
   })
 
-  it('opens on the Detect tab with a switcher to History', () => {
+  it('opens on the Detect tab with a switcher to the other pages', () => {
     render(<App />)
     expect(screen.getByRole('button', { name: 'Detect' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('button', { name: 'History' })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('button', { name: 'Analytics' })).not.toHaveAttribute('aria-current')
   })
 })
