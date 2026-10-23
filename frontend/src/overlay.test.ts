@@ -55,10 +55,41 @@ describe('coverage', () => {
   })
 })
 
+function luminance(hex: string): number {
+  const channel = (start: number) => {
+    const value = parseInt(hex.slice(start, start + 2), 16) / 255
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+  }
+  return 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5)
+}
+
+const BACKGROUNDS = { dark: '#16171d', light: '#ffffff' } as const
+
 describe('speciesColor', () => {
-  it('gives each of the 12 species its own color and wraps around', () => {
-    const colors = Array.from({ length: 12 }, (_, i) => speciesColor(i))
-    expect(new Set(colors).size).toBe(12)
-    expect(speciesColor(12)).toBe(speciesColor(0))
+  it('gives each of the 12 species its own color in both schemes and wraps around', () => {
+    for (const scheme of ['dark', 'light'] as const) {
+      const colors = Array.from({ length: 12 }, (_, i) => speciesColor(i, scheme))
+      expect(new Set(colors).size).toBe(12)
+      expect(speciesColor(12, scheme)).toBe(speciesColor(0, scheme))
+    }
+  })
+
+  it('has different palettes for light and dark pages', () => {
+    expect(speciesColor(0, 'light')).not.toBe(speciesColor(0, 'dark'))
+  })
+
+  it('stays readable on its page background', () => {
+    for (const scheme of ['dark', 'light'] as const) {
+      const background = luminance(BACKGROUNDS[scheme])
+      for (let id = 0; id < 12; id++) {
+        const lum = luminance(speciesColor(id, scheme))
+        const ratio = (Math.max(lum, background) + 0.05) / (Math.min(lum, background) + 0.05)
+        expect(ratio, `${scheme} class ${id}`).toBeGreaterThanOrEqual(3)
+      }
+    }
+  })
+
+  it('uses the dark palette when the browser cannot report a preference', () => {
+    expect(speciesColor(3)).toBe(speciesColor(3, 'dark'))
   })
 })

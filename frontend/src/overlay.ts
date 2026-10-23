@@ -53,19 +53,47 @@ export function coverage(boxes: Box[], width: number, height: number): number {
   return covered / (gridW * gridH)
 }
 
-const PALETTE = [
-  '#e6194b',
-  '#3cb44b',
-  '#4363d8',
-  '#f58231',
-  '#911eb4',
-  '#008080',
-  '#9a6324',
-  '#800000',
-  '#808000',
-  '#000075',
-  '#f032e6',
-  '#469990',
-]
+export type Scheme = 'light' | 'dark'
 
-export const speciesColor = (classId: number) => PALETTE[classId % PALETTE.length] ?? '#000000'
+// Every color keeps at least 3:1 contrast with its page background (checked in the tests).
+const PALETTES: Record<Scheme, string[]> = {
+  dark: [
+    '#e6194b', // waterhemp
+    '#3cb44b', // morning glory
+    '#4c8dff', // purslane
+    '#f58231', // spotted spurge
+    '#b565e0', // carpetweed
+    '#17b8b8', // ragweed
+    '#b8864b', // eclipta
+    '#ff8fb1', // prickly sida
+    '#c4c43c', // palmer amaranth
+    '#9aa0a6', // sicklepod
+    '#f032e6', // goosegrass
+    '#6fd6a0', // cutleaf groundcherry
+  ],
+  light: [
+    '#d1103a', // waterhemp
+    '#2e8b3a', // morning glory
+    '#2f63d8', // purslane
+    '#d9650a', // spotted spurge
+    '#8e44ad', // carpetweed
+    '#0e8a8a', // ragweed
+    '#9a6324', // eclipta
+    '#d6336c', // prickly sida
+    '#7d7d00', // palmer amaranth
+    '#6b7280', // sicklepod
+    '#c026d3', // goosegrass
+    '#0369a1', // cutleaf groundcherry
+  ],
+}
+
+function currentScheme(): Scheme {
+  const prefersLight =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    !window.matchMedia('(prefers-color-scheme: dark)').matches
+  return prefersLight ? 'light' : 'dark'
+}
+
+export const speciesColor = (classId: number, scheme: Scheme = currentScheme()) =>
+  PALETTES[scheme][classId % 12] ?? '#000000'

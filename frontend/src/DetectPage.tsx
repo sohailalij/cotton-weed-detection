@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ChangeEvent } from 'react'
 
 import { api, ApiError } from './api'
-import { atLeast, boxStyle, countBySpecies, coverage } from './overlay'
+import { atLeast, boxStyle, countBySpecies, coverage, speciesColor } from './overlay'
 import './DetectPage.css'
 
 type DetectResult = Awaited<ReturnType<typeof api.detect>>
@@ -11,11 +11,8 @@ type Detect = (file: File, conf: number) => Promise<DetectResult>
 // Ask the API once at a low cutoff, then filter in the browser as the slider moves.
 const FLOOR = 0.15
 const DEFAULT_CUTOFF = 0.58
-const PALETTE = [
-  '#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4', '#008080',
-  '#9a6324', '#800000', '#808000', '#000075', '#f032e6', '#469990',
-]
-const color = (classId: number) => PALETTE[classId % PALETTE.length] ?? '#000000'
+
+const color = (classId: number) => speciesColor(classId)
 
 type State =
   | { kind: 'idle' }
