@@ -62,6 +62,19 @@ Uploads are limited to JPEG, PNG and WEBP, decoded rather than trusted by header
 
 The service refuses to start if a required setting is missing or a value is invalid. The credentials in `docker-compose.yml` are for local development only.
 
+### Trying it from a phone on the same network
+
+The service has no login, so do this only on a network you trust, and only for as long as you need it.
+
+1. Find the computer's address on the Wi-Fi network, for example `192.168.0.125`.
+2. Start the API with that origin allowed. In PowerShell:
+   `$env:WEEDLAB_CORS_ORIGINS = "http://localhost:5173,http://<address>:5173"` and then `docker compose up -d`. Compose passes the variable to the service, and without it only `http://localhost:5173` is allowed.
+3. In the `frontend` folder, start the page for the network with `$env:VITE_API_URL = "http://<address>:8000"` and `npm run dev -- --host`.
+4. In the operating system firewall, allow incoming connections to ports 5173 and 8000 from the phone's address only, and remove the rule afterwards.
+5. Open `http://<address>:5173/` on the phone.
+
+Anyone who can reach port 8000 can list and delete saved detections and photos, which is why the firewall rule should be limited to one device and removed after the test. On a shared network, some routers also block devices from reaching each other, in which case a phone hotspot is an alternative.
+
 ## Develop
 
 ```
