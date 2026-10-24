@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 
 import './App.css'
-import AnalyticsPage from './AnalyticsPage'
 import DetectPage from './DetectPage'
 import HistoryPage from './HistoryPage'
+
+// The charts library is large, so this page is only downloaded when its tab is opened.
+const AnalyticsPage = lazy(() => import('./AnalyticsPage'))
 
 type Tab = 'detect' | 'history' | 'analytics'
 
@@ -36,7 +38,11 @@ export default function App() {
         <DetectPage />
       </div>
       {tab === 'history' && <HistoryPage />}
-      {tab === 'analytics' && <AnalyticsPage />}
+      {tab === 'analytics' && (
+        <Suspense fallback={<p>Loading...</p>}>
+          <AnalyticsPage />
+        </Suspense>
+      )}
     </main>
   )
 }
