@@ -100,7 +100,11 @@ export default function AnalyticsPage({ load = defaultLoad }: { load?: () => Pro
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={rows}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" tickFormatter={(value: string) => formatDay(value)} />
+                <XAxis
+                  dataKey="day"
+                  padding={{ left: 24, right: 24 }}
+                  tickFormatter={(value: string) => formatDay(value)}
+                />
                 <YAxis domain={[0, 100]} unit="%" />
                 <Tooltip labelFormatter={(value) => formatDay(String(value))} />
                 <Line
