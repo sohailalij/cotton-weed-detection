@@ -4,6 +4,9 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { ApiError, createApi } from './index'
 
+const VISITOR = 'visitor-aaaaaaaaaaaaaaaa'
+const OTHER_VISITOR = 'visitor-bbbbbbbbbbbbbbbb'
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -11,13 +14,13 @@ function jsonResponse(body: unknown, status = 200): Response {
   })
 }
 
-function makeApi(respond: () => Response) {
+function makeApi(respond: () => Response, visitor: string = VISITOR) {
   const calls: Request[] = []
   const mock = vi.fn(async (input: Request) => {
     calls.push(input)
     return respond()
   })
-  return { api: createApi('http://api.test', mock as unknown as typeof fetch), calls }
+  return { api: createApi('http://api.test', mock as unknown as typeof fetch, visitor), calls }
 }
 
 describe('api client', () => {
@@ -94,8 +97,10 @@ describe('api client', () => {
     expect((error as ApiError).message).toBe('detection not found')
   })
 
-  it('builds image URLs without a double slash', () => {
-    expect(createApi('http://api.test/').imageUrl(7)).toBe('http://api.test/v1/detections/7/image')
+  it('builds image URLs without a double slash and with the visitor id', () => {
+    expect(createApi('http://api.test/', undefined, VISITOR).imageUrl(7)).toBe(
+      `http://api.test/v1/detections/7/image?visitor=${VISITOR}`,
+    )
   })
 
   it('asks for the daily series, with and without a date range', async () => {
@@ -108,5 +113,59 @@ describe('api client', () => {
     const query = new URL(calls[1].url).searchParams
     expect(query.get('start')).toBe('2026-10-01T00:00:00Z')
     expect(query.get('end')).toBe('2026-10-31T00:00:00Z')
+  })
+})
+
+describe('visitor id', () => {
+  it('is sent as X-Visitor-Id on every call, including the upload and the delete', async () => {
+    const { api, calls } = makeApi(() => jsonResponse({}))
+    await api.health()
+    await api.model()
+    await api.detect(new File(['x'], 'a.jpg'))
+    await api.detections()
+    await api.detection(3)
+    await api.stats()
+    await api.statsDaily()
+    const deleting = makeApi(() => new Response(null, { status: 204 }))
+    await deleting.api.remove(3)
+
+    const all = [...calls, ...deleting.calls]
+    expect(all).toHaveLength(8)
+    for (const request of all) {
+      expect(request.headers.get('x-visitor-id')).toBe(VISITOR)
+    }
+  })
+
+  it('keeps the multipart content type when the header is added to an upload', async () => {
+    const { api, calls } = makeApi(() => jsonResponse({}))
+    await api.detect(new File(['x'], 'a.jpg'))
+    expect(calls[0].headers.get('content-type')).toMatch(/^multipart\/form-data; boundary=/)
+    expect(calls[0].headers.get('x-visitor-id')).toBe(VISITOR)
+  })
+
+  it('puts the visitor id in the thumbnail URL, because an img tag cannot send headers', () => {
+    const mine = createApi('http://api.test', undefined, VISITOR).imageUrl(7)
+    const theirs = createApi('http://api.test', undefined, OTHER_VISITOR).imageUrl(7)
+    expect(new URL(mine).searchParams.get('visitor')).toBe(VISITOR)
+    expect(new URL(theirs).searchParams.get('visitor')).toBe(OTHER_VISITOR)
+    expect(mine).not.toBe(theirs)
+  })
+
+  it('encodes the visitor id so it cannot break the URL', () => {
+    const url = createApi('http://api.test', undefined, 'a b&c=d').imageUrl(1)
+    expect(url).toBe('http://api.test/v1/detections/1/image?visitor=a%20b%26c%3Dd')
+  })
+
+  it('uses a valid generated id when none is passed', async () => {
+    const calls: Request[] = []
+    const mock = vi.fn(async (input: Request) => {
+      calls.push(input)
+      return jsonResponse({ status: 'ok', model_loaded: true })
+    })
+    const api = createApi('http://api.test', mock as unknown as typeof fetch)
+    await api.health()
+    const sent = calls[0].headers.get('x-visitor-id') ?? ''
+    expect(sent).toMatch(/^[A-Za-z0-9_-]{16,64}$/)
+    expect(new URL(api.imageUrl(1)).searchParams.get('visitor')).toBe(sent)
   })
 })

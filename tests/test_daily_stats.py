@@ -7,9 +7,19 @@ from sqlalchemy.orm import Session
 from weedlab.api.db import Base, ClassCount, DetectionRecord, make_engine, make_session_factory
 from weedlab.api.store import compute_daily
 
+VISITOR = "visitor-aaaaaaaaaaaaaaaa"
+OTHER_VISITOR = "visitor-bbbbbbbbbbbbbbbb"
 
-def record(when: datetime, count: int, coverage: float, counts: dict[str, int]) -> DetectionRecord:
+
+def record(
+    when: datetime,
+    count: int,
+    coverage: float,
+    counts: dict[str, int],
+    visitor: str = VISITOR,
+) -> DetectionRecord:
     return DetectionRecord(
+        visitor_id=visitor,
         created_at=when,
         model_name="m",
         image_width=10,
@@ -47,7 +57,7 @@ def seed(session: Session) -> None:
 
 def test_groups_by_utc_day(session: Session) -> None:
     seed(session)
-    series = compute_daily(session, None, None)
+    series = compute_daily(session, VISITOR, None, None)
     assert [d.day for d in series.days] == ["2026-10-20", "2026-10-21"]
     first, second = series.days
     assert (first.detections, first.weeds_found) == (1, 2)
@@ -60,25 +70,44 @@ def test_groups_by_utc_day(session: Session) -> None:
 
 def test_date_range_limits_the_days(session: Session) -> None:
     seed(session)
-    later = compute_daily(session, utc(21), None)
+    later = compute_daily(session, VISITOR, utc(21), None)
     assert [d.day for d in later.days] == ["2026-10-21"]
-    earlier = compute_daily(session, None, utc(20, 23, 59, 59))
+    earlier = compute_daily(session, VISITOR, None, utc(20, 23, 59, 59))
     assert [d.day for d in earlier.days] == ["2026-10-20"]
-    naive = compute_daily(session, datetime(2026, 10, 21), None)  # no timezone means UTC
+    naive = compute_daily(session, VISITOR, datetime(2026, 10, 21), None)  # no timezone means UTC
     assert [d.day for d in naive.days] == ["2026-10-21"]
 
 
 def test_a_detection_without_weeds_still_counts_for_its_day(session: Session) -> None:
     session.add(record(utc(22, 8), 0, 0.0, {}))
     session.commit()
-    (day,) = compute_daily(session, None, None).days
+    (day,) = compute_daily(session, VISITOR, None, None).days
     assert (day.day, day.detections, day.weeds_found) == ("2026-10-22", 1, 0)
     assert day.mean_box_coverage == 0.0
     assert day.counts_by_class == {}
 
 
 def test_empty_history_gives_no_days(session: Session) -> None:
-    series = compute_daily(session, None, None)
+    series = compute_daily(session, VISITOR, None, None)
     assert series.days == []
     assert series.start is None
     assert series.end is None
+
+
+def test_other_visitors_rows_are_left_out(session: Session) -> None:
+    seed(session)
+    session.add(record(utc(21, 18), 9, 0.9, {"z": 9}, visitor=OTHER_VISITOR))
+    session.commit()
+    mine = compute_daily(session, VISITOR, None, None)
+    assert [d.day for d in mine.days] == ["2026-10-20", "2026-10-21"]
+    assert mine.days[1].detections == 2
+    assert "z" not in mine.days[1].counts_by_class
+    theirs = compute_daily(session, OTHER_VISITOR, None, None)
+    assert [(d.day, d.detections, d.weeds_found) for d in theirs.days] == [("2026-10-21", 1, 9)]
+    assert theirs.days[0].counts_by_class == {"z": 9}
+
+
+def test_a_visitor_with_no_rows_gets_no_days_even_with_a_range(session: Session) -> None:
+    seed(session)
+    nobody = "visitor-cccccccccccccccc"
+    assert compute_daily(session, nobody, utc(1), utc(30)).days == []
