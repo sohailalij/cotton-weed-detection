@@ -1,6 +1,7 @@
 import createClient from 'openapi-fetch'
 
 import type { paths } from './schema'
+import { getVisitorId } from './visitor'
 
 export class ApiError extends Error {
   status: number
@@ -34,8 +35,16 @@ function unwrap<T>(result: { data?: T; error?: unknown; response: Response }): T
   throw new ApiError(result.response.status, describe(result.error, result.response.statusText))
 }
 
-export function createApi(baseUrl: string, fetchImpl?: typeof fetch) {
-  const client = createClient<paths>({ baseUrl, fetch: fetchImpl })
+export function createApi(
+  baseUrl: string,
+  fetchImpl?: typeof fetch,
+  visitorId: string = getVisitorId(),
+) {
+  const client = createClient<paths>({
+    baseUrl,
+    fetch: fetchImpl,
+    headers: { 'X-Visitor-Id': visitorId },
+  })
 
   return {
     async health() {
@@ -74,8 +83,10 @@ export function createApi(baseUrl: string, fetchImpl?: typeof fetch) {
       })
       if (!response.ok) throw new ApiError(response.status, describe(error, response.statusText))
     },
+    /** An <img> tag cannot send headers, so the thumbnail route takes the id in the URL. */
     imageUrl(id: number) {
-      return `${baseUrl.replace(/\/+$/, '')}/v1/detections/${id}/image`
+      const base = baseUrl.replace(/\/+$/, '')
+      return `${base}/v1/detections/${id}/image?visitor=${encodeURIComponent(visitorId)}`
     },
     async stats(start?: string, end?: string) {
       return unwrap(await client.GET('/v1/stats', { params: { query: { start, end } } }))
