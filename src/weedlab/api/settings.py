@@ -8,6 +8,7 @@ from pathlib import Path
 
 DEFAULT_ORIGINS = ("http://localhost:5173",)
 DEFAULT_METRICS = Path("reports/test_eval/yolo11s_v1_960_best/metrics.json")
+DEFAULT_RETENTION_DAYS = 7
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,7 @@ class Settings:
     cors_origins: tuple[str, ...] = DEFAULT_ORIGINS
     database_url: str | None = None
     rate_limit_per_minute: int = 10
+    retention_days: int = DEFAULT_RETENTION_DAYS
 
     @property
     def model_name(self) -> str:
@@ -53,10 +55,20 @@ class Settings:
             rate = 0
         if rate < 1:
             raise RuntimeError("WEEDLAB_RATE_LIMIT_PER_MINUTE must be a positive integer")
+        raw_retention = os.environ.get("WEEDLAB_RETENTION_DAYS", str(DEFAULT_RETENTION_DAYS))
+        try:
+            retention = int(raw_retention)
+        except ValueError:
+            retention = -1
+        if retention < 0:
+            raise RuntimeError(
+                "WEEDLAB_RETENTION_DAYS must be a whole number of days, or 0 to keep everything"
+            )
         return cls(
             model_path=model_path,
             max_upload_bytes=int(max_mb * 1024 * 1024),
             cors_origins=origins,
             database_url=database_url,
             rate_limit_per_minute=rate,
+            retention_days=retention,
         )

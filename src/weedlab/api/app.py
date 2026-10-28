@@ -3,15 +3,30 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
+import re
+import threading
 from collections import Counter
-from datetime import datetime
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 from typing import Annotated, Protocol
 
 import numpy as np
-from fastapi import FastAPI, File, HTTPException, Query, Request, Response, UploadFile
+from fastapi import (
+    Depends,
+    FastAPI,
+    File,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+)
 from fastapi import Path as PathParam
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -41,13 +56,18 @@ from weedlab.api.store import (
     get_detection,
     get_thumbnail,
     list_detections,
+    purge_older_than,
     save_detection,
 )
 from weedlab.api.thumbnail import make_thumbnail
 from weedlab.inference import Detection, Detector
 
+logger = logging.getLogger(__name__)
+
 ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP"}
 MAX_ID = 2_147_483_647
+VISITOR_ID_PATTERN = re.compile(r"[A-Za-z0-9_-]{16,64}")
+PURGE_INTERVAL_SECONDS = 3600
 
 
 class DetectorLike(Protocol):
@@ -112,6 +132,29 @@ def load_metrics(path: Path | None) -> HeldOutMetrics | None:
     )
 
 
+def check_visitor_id(value: str | None) -> str:
+    """Accept only a well-formed visitor id. Anything else is a 400."""
+    if value is None or VISITOR_ID_PATTERN.fullmatch(value) is None:
+        raise HTTPException(status_code=400, detail="missing or malformed visitor id")
+    return value
+
+
+def visitor_from_header(x_visitor_id: Annotated[str | None, Header()] = None) -> str:
+    return check_visitor_id(x_visitor_id)
+
+
+def visitor_from_header_or_query(
+    x_visitor_id: Annotated[str | None, Header()] = None,
+    visitor: Annotated[str | None, Query()] = None,
+) -> str:
+    """For the image route: an <img> tag cannot send headers, so a query parameter works too."""
+    return check_visitor_id(x_visitor_id if x_visitor_id is not None else visitor)
+
+
+Visitor = Annotated[str, Depends(visitor_from_header)]
+ImageVisitor = Annotated[str, Depends(visitor_from_header_or_query)]
+
+
 def create_app(
     settings: Settings | None = None,
     detector: DetectorLike | None = None,
@@ -132,12 +175,48 @@ def create_app(
     metrics = load_metrics(cfg.metrics_path)
     rate_limiter: RateLimiter = limiter or RateLimiter(cfg.rate_limit_per_minute)
 
-    app = FastAPI(title="Weed detection API", version="0.3.0")
+    def run_purge() -> int:
+        """Delete detections older than the retention period. Never raises."""
+        cutoff = datetime.now(UTC) - timedelta(days=cfg.retention_days)
+        try:
+            with sessions() as session:
+                removed = purge_older_than(session, cutoff)
+        except SQLAlchemyError:
+            logger.exception("could not delete expired detections")
+            return 0
+        if removed:
+            logger.info("deleted %d detections older than %d days", removed, cfg.retention_days)
+        return removed
+
+    def purge_loop(stop: threading.Event) -> None:
+        while True:
+            run_purge()
+            if stop.wait(PURGE_INTERVAL_SECONDS):
+                return
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        stop = threading.Event()
+        worker: threading.Thread | None = None
+        if cfg.retention_days > 0:
+            worker = threading.Thread(
+                target=purge_loop, args=(stop,), name="purge-expired", daemon=True
+            )
+            worker.start()
+        try:
+            yield
+        finally:
+            stop.set()
+            if worker is not None:
+                worker.join(timeout=5)
+
+    app = FastAPI(title="Weed detection API", version="0.4.0", lifespan=lifespan)
+    app.state.run_purge = run_purge
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(cfg.cors_origins),
         allow_methods=["GET", "POST", "DELETE"],
-        allow_headers=["Content-Type"],
+        allow_headers=["Content-Type", "X-Visitor-Id"],
     )
 
     @app.get("/health", response_model=Health)
@@ -157,6 +236,7 @@ def create_app(
     @app.post("/v1/detect", response_model=DetectResponse)
     def detect(
         request: Request,
+        visitor_id: Visitor,
         file: Annotated[UploadFile, File(description="JPEG, PNG or WEBP image")],
         conf: Annotated[float | None, Query(ge=0.01, le=0.99)] = None,
     ) -> DetectResponse:
@@ -196,6 +276,7 @@ def create_app(
             with sessions() as session:
                 new_id = save_detection(
                     session,
+                    visitor_id=visitor_id,
                     model_name=cfg.model_name,
                     width=image.width,
                     height=image.height,
@@ -219,16 +300,20 @@ def create_app(
 
     @app.get("/v1/detections", response_model=DetectionPage)
     def detections(
+        visitor_id: Visitor,
         limit: Annotated[int, Query(ge=1, le=100)] = 20,
         offset: Annotated[int, Query(ge=0)] = 0,
     ) -> DetectionPage:
         with sessions() as session:
-            return list_detections(session, limit, offset)
+            return list_detections(session, visitor_id, limit, offset)
 
     @app.get("/v1/detections/{detection_id}", response_model=DetectionDetail)
-    def detection(detection_id: Annotated[int, PathParam(ge=1, le=MAX_ID)]) -> DetectionDetail:
+    def detection(
+        visitor_id: Visitor,
+        detection_id: Annotated[int, PathParam(ge=1, le=MAX_ID)],
+    ) -> DetectionDetail:
         with sessions() as session:
-            found = get_detection(session, detection_id)
+            found = get_detection(session, visitor_id, detection_id)
         if found is None:
             raise HTTPException(status_code=404, detail="detection not found")
         return found
@@ -238,9 +323,12 @@ def create_app(
         response_class=Response,
         responses={200: {"content": {"image/jpeg": {}}, "description": "JPEG thumbnail"}},
     )
-    def detection_image(detection_id: Annotated[int, PathParam(ge=1, le=MAX_ID)]) -> Response:
+    def detection_image(
+        visitor_id: ImageVisitor,
+        detection_id: Annotated[int, PathParam(ge=1, le=MAX_ID)],
+    ) -> Response:
         with sessions() as session:
-            jpeg = get_thumbnail(session, detection_id)
+            jpeg = get_thumbnail(session, visitor_id, detection_id)
         if jpeg is None:
             raise HTTPException(status_code=404, detail="image not found")
         return Response(
@@ -250,25 +338,36 @@ def create_app(
         )
 
     @app.delete("/v1/detections/{detection_id}", status_code=204, response_class=Response)
-    def remove_detection(detection_id: Annotated[int, PathParam(ge=1, le=MAX_ID)]) -> Response:
+    def remove_detection(
+        visitor_id: Visitor,
+        detection_id: Annotated[int, PathParam(ge=1, le=MAX_ID)],
+    ) -> Response:
         with sessions() as session:
-            found = delete_detection(session, detection_id)
+            found = delete_detection(session, visitor_id, detection_id)
         if not found:
             raise HTTPException(status_code=404, detail="detection not found")
         return Response(status_code=204)
 
     @app.get("/v1/stats", response_model=Stats)
-    def stats(start: datetime | None = None, end: datetime | None = None) -> Stats:
+    def stats(
+        visitor_id: Visitor,
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> Stats:
         if start is not None and end is not None and as_utc(start) > as_utc(end):
             raise HTTPException(status_code=422, detail="start must not be after end")
         with sessions() as session:
-            return compute_stats(session, start, end)
+            return compute_stats(session, visitor_id, start, end)
 
     @app.get("/v1/stats/daily", response_model=DailySeries)
-    def stats_daily(start: datetime | None = None, end: datetime | None = None) -> DailySeries:
+    def stats_daily(
+        visitor_id: Visitor,
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> DailySeries:
         if start is not None and end is not None and as_utc(start) > as_utc(end):
             raise HTTPException(status_code=422, detail="start must not be after end")
         with sessions() as session:
-            return compute_daily(session, start, end)
+            return compute_daily(session, visitor_id, start, end)
 
     return app

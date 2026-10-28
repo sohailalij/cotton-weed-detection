@@ -42,6 +42,7 @@ class DetectionRecord(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, index=True
     )
+    visitor_id: Mapped[str] = mapped_column(String(64), index=True, default="", server_default="")
     model_name: Mapped[str] = mapped_column(String(100))
     image_width: Mapped[int] = mapped_column(Integer)
     image_height: Mapped[int] = mapped_column(Integer)

@@ -388,7 +388,9 @@ export interface operations {
             query?: {
                 conf?: number | null;
             };
-            header?: never;
+            header?: {
+                "x-visitor-id"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -424,7 +426,9 @@ export interface operations {
                 limit?: number;
                 offset?: number;
             };
-            header?: never;
+            header?: {
+                "x-visitor-id"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -453,7 +457,9 @@ export interface operations {
     detection_v1_detections__detection_id__get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-visitor-id"?: string | null;
+            };
             path: {
                 detection_id: number;
             };
@@ -484,7 +490,9 @@ export interface operations {
     remove_detection_v1_detections__detection_id__delete: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-visitor-id"?: string | null;
+            };
             path: {
                 detection_id: number;
             };
@@ -512,8 +520,12 @@ export interface operations {
     };
     detection_image_v1_detections__detection_id__image_get: {
         parameters: {
-            query?: never;
-            header?: never;
+            query?: {
+                visitor?: string | null;
+            };
+            header?: {
+                "x-visitor-id"?: string | null;
+            };
             path: {
                 detection_id: number;
             };
@@ -567,7 +579,9 @@ export interface operations {
                 start?: string | null;
                 end?: string | null;
             };
-            header?: never;
+            header?: {
+                "x-visitor-id"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -599,7 +613,9 @@ export interface operations {
                 start?: string | null;
                 end?: string | null;
             };
-            header?: never;
+            header?: {
+                "x-visitor-id"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
