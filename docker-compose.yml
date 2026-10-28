@@ -24,6 +24,7 @@ services:
       WEEDLAB_MODEL_PATH: /models/yolo11s_v1_960.onnx
       WEEDLAB_DATABASE_URL: postgresql+psycopg://weedlab:weedlab@db:5432/weedlab
       WEEDLAB_CORS_ORIGINS: ${WEEDLAB_CORS_ORIGINS:-http://localhost:5173}
+      WEEDLAB_RETENTION_DAYS: ${WEEDLAB_RETENTION_DAYS:-7}
     volumes:
       - ./models:/models:ro
     ports:
