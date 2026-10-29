@@ -20,26 +20,45 @@ export default function App() {
 
   return (
     <main>
-      <h1>Weed detection</h1>
-      <p>Upload a close-up photo of a cotton field to find weeds.</p>
-      <nav aria-label="Pages" className="tabs">
-        {TABS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            aria-current={tab === id ? 'page' : undefined}
+      <header className="site-header">
+        <div className="brand">
+          <svg
+            className="brand-icon"
+            viewBox="0 0 32 32"
+            aria-hidden="true"
+            focusable="false"
           >
-            {label}
-          </button>
-        ))}
-      </nav>
-      <div hidden={tab !== 'detect'}>
-        <DetectPage />
-      </div>
+            <rect width="32" height="32" rx="7" fill="var(--accent)" />
+            <path d="M9 23C9 14 14 9 24 8c0 9-4 15-13 15z" fill="var(--on-accent)" />
+            <path
+              d="M9 23l9-9"
+              stroke="var(--accent)"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+          </svg>
+          <div>
+            <h1>Weed detection</h1>
+            <p>Upload a close-up photo of a cotton field to find weeds.</p>
+          </div>
+        </div>
+        <nav aria-label="Pages" className="tabs">
+          {TABS.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTab(id)}
+              aria-current={tab === id ? 'page' : undefined}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+      </header>
+      {tab === 'detect' && <DetectPage />}
       {tab === 'history' && <HistoryPage />}
       {tab === 'analytics' && (
-        <Suspense fallback={<p>Loading...</p>}>
+        <Suspense fallback={<p className="state">Loading...</p>}>
           <AnalyticsPage />
         </Suspense>
       )}
