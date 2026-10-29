@@ -22,6 +22,14 @@ const defaultLoad = () => api.statsDaily()
 
 const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
+// Recharts draws the tooltip with inline styles, so the theme colors are passed in here.
+const tooltipStyle = {
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  borderRadius: 8,
+  color: 'var(--text-h)',
+}
+
 export default function AnalyticsPage({ load = defaultLoad }: { load?: () => Promise<Series> }) {
   const [series, setSeries] = useState<Series | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -58,24 +66,35 @@ export default function AnalyticsPage({ load = defaultLoad }: { load?: () => Pro
       <h2>Analytics</h2>
       <div role="status" aria-live="polite">
         {error && <p className="analytics-error">{error}</p>}
-        {!series && !error && <p>Loading...</p>}
+        {!series && !error && <p className="state">Loading...</p>}
       </div>
 
-      {series && days.length === 0 && <p>No detections yet. Run one on the Detect tab.</p>}
+      {series && days.length === 0 && (
+        <p className="state">No detections yet. Run one on the Detect tab.</p>
+      )}
 
       {series && days.length > 0 && (
         <>
-          <p>{headline}</p>
-          <p>{speciesText}</p>
+          <div className="analytics-summary card">
+            <p className="analytics-headline">{headline}</p>
+            <p className="analytics-species">{speciesText}</p>
+          </div>
 
           <h3>Weeds found per day</h3>
-          <div className="analytics-chart" role="img" aria-label="Bar chart of weeds found per day">
+          <div
+            className="analytics-chart card"
+            role="img"
+            aria-label="Bar chart of weeds found per day"
+          >
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={rows}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="day" tickFormatter={(value: string) => formatDay(value)} />
                 <YAxis allowDecimals={false} />
-                <Tooltip labelFormatter={(value) => formatDay(String(value))} />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  labelFormatter={(value) => formatDay(String(value))}
+                />
                 <Legend />
                 {species.map((name) => (
                   <Bar
@@ -93,7 +112,7 @@ export default function AnalyticsPage({ load = defaultLoad }: { load?: () => Pro
 
           <h3>Average box coverage per day</h3>
           <div
-            className="analytics-chart"
+            className="analytics-chart card"
             role="img"
             aria-label="Line chart of average weed coverage per day"
           >
@@ -106,13 +125,17 @@ export default function AnalyticsPage({ load = defaultLoad }: { load?: () => Pro
                   tickFormatter={(value: string) => formatDay(value)}
                 />
                 <YAxis domain={[0, 100]} unit="%" />
-                <Tooltip labelFormatter={(value) => formatDay(String(value))} />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  labelFormatter={(value) => formatDay(String(value))}
+                />
                 <Line
                   type="monotone"
                   dataKey="coveragePercent"
                   name="Coverage"
                   unit="%"
-                  stroke="#4363d8"
+                  stroke="#2f7d4f"
+                  strokeWidth={2}
                   isAnimationActive={false}
                 />
               </LineChart>

@@ -206,3 +206,28 @@ describe('HistoryPage', () => {
     expect(list).toHaveBeenCalledTimes(1)
   })
 })
+
+  it('shows the delete confirmation as a dialog', async () => {
+    const list = vi.fn(() => Promise.resolve(one()))
+    render(<HistoryPage list={list} remove={vi.fn()} imageUrl={imageUrl} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete detection 1' }))
+    expect(screen.getByRole('dialog', { name: 'Delete this detection?' })).toBeInTheDocument()
+  })
+
+  it('closes the dialog with Escape without deleting', async () => {
+    const list = vi.fn(() => Promise.resolve(one()))
+    const remove = vi.fn(() => Promise.resolve())
+    render(<HistoryPage list={list} remove={remove} imageUrl={imageUrl} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete detection 1' }))
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(remove).not.toHaveBeenCalled()
+  })
+
+  it('hides the page buttons when everything fits on one page', async () => {
+    const list = vi.fn(() => Promise.resolve(one()))
+    render(<HistoryPage list={list} remove={vi.fn()} imageUrl={imageUrl} />)
+    expect(await screen.findByText('Showing 1 to 1 of 1')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Previous' })).not.toBeInTheDocument()
+  })
