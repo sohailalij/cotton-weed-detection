@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { ChangeEvent } from 'react'
+import type { ChangeEvent, DragEvent } from 'react'
 
 import { api, ApiError } from './api'
 import { atLeast, boxStyle, countBySpecies, coverage, speciesColor } from './overlay'
@@ -11,6 +11,7 @@ type Detect = (file: File, conf: number) => Promise<DetectResult>
 // Ask the API once at a low cutoff, then filter in the browser as the slider moves.
 const FLOOR = 0.15
 const DEFAULT_CUTOFF = 0.58
+const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp']
 
 const color = (classId: number) => speciesColor(classId)
 
@@ -29,6 +30,9 @@ export default function DetectPage({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [state, setState] = useState<State>({ kind: 'idle' })
   const [cutoff, setCutoff] = useState(DEFAULT_CUTOFF)
+  const [dragging, setDragging] = useState(false)
+
+  const busy = state.kind === 'loading'
 
   useEffect(
     () => () => {
@@ -37,11 +41,36 @@ export default function DetectPage({
     [previewUrl],
   )
 
-  function onFile(event: ChangeEvent<HTMLInputElement>) {
-    const chosen = event.target.files?.[0] ?? null
+  function chooseFile(chosen: File | null) {
     setFile(chosen)
     setPreviewUrl(chosen ? URL.createObjectURL(chosen) : null)
     setState({ kind: 'idle' })
+  }
+
+  function onFile(event: ChangeEvent<HTMLInputElement>) {
+    chooseFile(event.target.files?.[0] ?? null)
+  }
+
+  function onDragOver(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault()
+    if (!busy) setDragging(true)
+  }
+
+  function onDragLeave(event: DragEvent<HTMLDivElement>) {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false)
+  }
+
+  function onDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault()
+    setDragging(false)
+    if (busy) return
+    const dropped = event.dataTransfer.files?.[0]
+    if (!dropped) return
+    if (ACCEPTED.includes(dropped.type)) {
+      chooseFile(dropped)
+    } else {
+      setState({ kind: 'error', message: 'Please choose a JPEG, PNG or WEBP photo' })
+    }
   }
 
   async function run() {
@@ -70,18 +99,38 @@ export default function DetectPage({
   return (
     <section className="detect">
       <h2>Detect weeds</h2>
-      <div className="controls">
+      <div
+        className={`dropzone${dragging ? ' dragging' : ''}`}
+        onDragOver={onDragOver}
+        onDragEnter={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+      >
+        <svg className="dropzone-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+          <path
+            d="M24 32V12m0 0l-8 8m8-8l8 8M10 34v4a2 2 0 002 2h24a2 2 0 002-2v-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
         <label>
           Photo{' '}
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"
             onChange={onFile}
-            disabled={state.kind === 'loading'}
+            disabled={busy}
           />
         </label>
-        <button type="button" onClick={run} disabled={!file || state.kind === 'loading'}>
-          {state.kind === 'loading' ? 'Detecting…' : 'Find weeds'}
+        <p className="dropzone-hint">Drag a photo here, or choose a file. JPEG, PNG or WEBP.</p>
+        {file && <p className="filename">{file.name}</p>}
+      </div>
+      <div className="controls">
+        <button type="button" className="primary" onClick={run} disabled={!file || busy}>
+          {busy ? 'Detecting…' : 'Find weeds'}
         </button>
       </div>
       {state.kind === 'error' && (
@@ -107,7 +156,7 @@ export default function DetectPage({
         </div>
       )}
       {result && (
-        <div className="results">
+        <div className="results card">
           <label>
             Confidence cutoff: {cutoff.toFixed(2)}{' '}
             <input
