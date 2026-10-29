@@ -1,17 +1,74 @@
 .analytics {
   max-width: 900px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 0.5rem 0 1rem;
   text-align: left;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
+.analytics h2,
+.analytics h3 {
+  margin: 0;
+}
+
+.analytics h3 {
+  margin-top: 0.5rem;
+  font-size: 1.05rem;
+  color: var(--text-h);
+}
+
 .analytics-error {
-  color: #b00020;
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+}
+
+.analytics-summary {
+  border-left: 4px solid var(--accent);
+}
+
+.analytics-headline {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.analytics-species {
+  margin-top: 0.25rem;
 }
 
 .analytics-chart {
   width: 100%;
+  box-sizing: border-box;
+  padding: 1rem 0.5rem 0.5rem 0;
+}
+
+/* Recharts draws with fixed colors, so match them to the theme here. */
+.analytics-chart .recharts-cartesian-grid line {
+  stroke: var(--border);
+}
+
+.analytics-chart .recharts-cartesian-axis-line,
+.analytics-chart .recharts-cartesian-axis-tick-line {
+  stroke: var(--border);
+}
+
+.analytics-chart .recharts-cartesian-axis-tick text {
+  fill: var(--text);
+}
+
+.analytics-chart .recharts-legend-item-text {
+  color: var(--text) !important;
+}
+
+.analytics-chart .recharts-line-curve {
+  stroke: var(--accent);
+}
+
+.analytics-chart .recharts-line-dot {
+  stroke: var(--accent);
+  fill: var(--surface);
 }

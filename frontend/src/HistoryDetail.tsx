@@ -55,26 +55,30 @@ export default function HistoryDetail({
 
   return (
     <section className="detail">
-      <button type="button" onClick={onBack}>
-        Back to the list
-      </button>
+      <div className="detail-top">
+        <button type="button" onClick={onBack}>
+          Back to the list
+        </button>
+      </div>
       {error && (
         <p role="alert" className="detail-error">
           {error}
         </p>
       )}
-      {!detail && !error && <p>Loading...</p>}
+      {!detail && !error && <p className="state">Loading...</p>}
       {detail && (
         <>
-          <h2>Detection {detail.id}</h2>
-          <p>
-            {new Date(detail.created_at).toLocaleString(undefined, {
-              dateStyle: 'medium',
-              timeStyle: 'short',
-            })}
-          </p>
+          <div>
+            <h2>Detection {detail.id}</h2>
+            <p className="detail-date">
+              {new Date(detail.created_at).toLocaleString(undefined, {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              })}
+            </p>
+          </div>
           {photoFailed ? (
-            <p>No photo was saved for this detection.</p>
+            <p className="state">No photo was saved for this detection.</p>
           ) : (
             <div className="detail-stage">
               <img
@@ -95,35 +99,40 @@ export default function HistoryDetail({
               ))}
             </div>
           )}
-          <label>
-            Confidence cutoff: {cutoff.toFixed(2)}{' '}
-            <input
-              type="range"
-              aria-label="Confidence cutoff"
-              min={MIN_CUTOFF}
-              max={0.95}
-              step={0.01}
-              value={cutoff}
-              onChange={(e) => setCutoff(Number(e.target.value))}
-            />
-          </label>
-          {shown.length === 0 ? (
-            <p>No weeds found at this cutoff.</p>
-          ) : (
-            <>
-              <p>
-                {shown.length} detections, covering {(covered * 100).toFixed(1)}% of the photo
-              </p>
-              <ul className="detail-legend">
-                {species.map(([name, n]) => (
-                  <li key={name}>
-                    <span className="detail-swatch" style={{ background: colorByName.get(name) }} />
-                    {name}: {n}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
+          <div className="detail-results card">
+            <label>
+              Confidence cutoff: {cutoff.toFixed(2)}{' '}
+              <input
+                type="range"
+                aria-label="Confidence cutoff"
+                min={MIN_CUTOFF}
+                max={0.95}
+                step={0.01}
+                value={cutoff}
+                onChange={(e) => setCutoff(Number(e.target.value))}
+              />
+            </label>
+            {shown.length === 0 ? (
+              <p>No weeds found at this cutoff.</p>
+            ) : (
+              <>
+                <p>
+                  {shown.length} detections, covering {(covered * 100).toFixed(1)}% of the photo
+                </p>
+                <ul className="detail-legend">
+                  {species.map(([name, n]) => (
+                    <li key={name}>
+                      <span
+                        className="detail-swatch"
+                        style={{ background: colorByName.get(name) }}
+                      />
+                      {name}: {n}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
         </>
       )}
     </section>
