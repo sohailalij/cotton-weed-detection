@@ -23,4 +23,4 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn weedlab.api.app:create_app --factory --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "python -m weedlab.api.model_fetch && alembic upgrade head && exec uvicorn weedlab.api.app:create_app --factory --host 0.0.0.0 --port 8000"]
