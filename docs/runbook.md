@@ -45,7 +45,9 @@ The hook address is stored as the GitHub secret `RENDER_DEPLOY_HOOK_URL`. If it 
 
 ## Rolling back
 
-Status: not yet tested.
+Status: Plan A tested on 30 October 2026. With `v0.1.1` live, a manual deploy of the `v0.1.0` commit brought the service back to the older code in about 45 seconds. A detection worked afterwards and the saved history was still there, because it lives in the database. Plan B was not tried.
+
+A manual deploy from the dashboard leaves the live service on an older commit than the newest tag. To get back to the latest version, push a new tag.
 
 Plan A: on Render, open Deploys, then Manual Deploy, then Deploy a specific commit, and pick the last good commit.
 Plan B: on Render, open an earlier successful deploy and use its Rollback option, if the free plan offers it.
