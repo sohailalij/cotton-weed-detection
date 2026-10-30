@@ -246,13 +246,6 @@ def create_app(
             request.headers,
             cfg.trusted_proxy_hops,
         )
-        logger.warning(
-            "DEBUG-IP peer=%s xff=%r hops=%d key=%s",
-            request.client.host if request.client else None,
-            request.headers.get("x-forwarded-for"),
-            cfg.trusted_proxy_hops,
-            client_key,
-        )
         wait = rate_limiter.check(client_key)
         if wait is not None:
             raise HTTPException(
