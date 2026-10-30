@@ -33,6 +33,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
+from weedlab.api.clientip import client_key as resolve_client_key
 from weedlab.api.db import make_engine, make_session_factory
 from weedlab.api.ratelimit import RateLimiter
 from weedlab.api.schemas import (
@@ -240,7 +241,11 @@ def create_app(
         file: Annotated[UploadFile, File(description="JPEG, PNG or WEBP image")],
         conf: Annotated[float | None, Query(ge=0.01, le=0.99)] = None,
     ) -> DetectResponse:
-        client_key = request.client.host if request.client else "unknown"
+        client_key = resolve_client_key(
+            request.client.host if request.client else None,
+            request.headers,
+            cfg.trusted_proxy_hops,
+        )
         wait = rate_limiter.check(client_key)
         if wait is not None:
             raise HTTPException(
