@@ -147,6 +147,16 @@ Training and evaluation need the extras `train` and `export` as well. The code i
 - There is no login. Visitors are separated by a random id kept in the browser (see [Privacy](#privacy)), which stops accidental viewing but is not strong access control, so do not expose the service publicly with photos you would not want others to see.
 - The daily statistics group by UTC day, so a detection made late in the evening in the Americas can appear under the next day. They are computed in the application by reading all matching rows, which is fine for a demo but would need a database-side query for a large history.
 
+## Documentation
+
+- [`docs/architecture.md`](docs/architecture.md): how the pieces fit together and what happens on a detection
+- [`docs/evaluation.md`](docs/evaluation.md): data split, results, error analysis and the experiments that did not work
+- [`docs/model_card.md`](docs/model_card.md): intended use and failure modes
+- [`docs/data_notes.md`](docs/data_notes.md): dataset audit, label fixes and the leakage check
+- [`docs/runbook.md`](docs/runbook.md): deploying, rolling back and debugging
+- [`docs/decisions/`](docs/decisions/): short records of why the main choices were made (split, model size, input size, threshold, ONNX, visitor ids, hosting, rate limiting)
+- [`docs/product_brief.md`](docs/product_brief.md): who the demo is for and what it is meant to show
+
 ## Licensing
 
 - Ultralytics YOLO is released under AGPL-3.0, which matters if anyone wants to run this as a commercial service.
