@@ -644,3 +644,57 @@ def test_app_starts_and_stops_with_cleanup_enabled() -> None:
     app, _, _ = make_parts(retention_days=1)
     with TestClient(app) as client:
         assert client.get("/health").status_code == 200
+
+
+def _upload(client: TestClient, forwarded: str | None = None) -> int:
+    headers = {"X-Forwarded-For": forwarded} if forwarded else {}
+    response = client.post(
+        "/v1/detect",
+        files={"file": ("a.jpg", image_bytes(), "image/jpeg")},
+        headers=headers,
+    )
+    return response.status_code
+
+
+def test_visitors_behind_a_trusted_proxy_get_separate_limits() -> None:
+    app, _, _ = make_parts(rate_limit_per_minute=2, trusted_proxy_hops=1)
+    alice = TestClient(app, headers={HEADER: VISITOR_A})
+    bob = TestClient(app, headers={HEADER: VISITOR_B})
+    assert _upload(alice, "203.0.113.1") == 200
+    assert _upload(alice, "203.0.113.1") == 200
+    assert _upload(alice, "203.0.113.1") == 429
+    assert _upload(bob, "203.0.113.2") == 200
+
+
+def test_a_forged_forwarded_header_does_not_dodge_the_limit() -> None:
+    app, _, _ = make_parts(rate_limit_per_minute=2, trusted_proxy_hops=1)
+    client = TestClient(app, headers={HEADER: VISITOR_A})
+    assert _upload(client, "6.6.6.1, 203.0.113.1") == 200
+    assert _upload(client, "6.6.6.2, 203.0.113.1") == 200
+    assert _upload(client, "6.6.6.3, 203.0.113.1") == 429
+
+
+def test_forwarded_header_is_ignored_when_no_proxy_is_trusted() -> None:
+    app, _, _ = make_parts(rate_limit_per_minute=2)
+    client = TestClient(app, headers={HEADER: VISITOR_A})
+    assert _upload(client, "6.6.6.1") == 200
+    assert _upload(client, "6.6.6.2") == 200
+    assert _upload(client, "6.6.6.3") == 429
+
+
+@pytest.mark.parametrize("value", ["-1", "6", "abc"])
+def test_settings_reject_bad_trusted_proxy_hops(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, value: str
+) -> None:
+    set_required_env(monkeypatch, tmp_path)
+    monkeypatch.setenv("WEEDLAB_TRUSTED_PROXY_HOPS", value)
+    with pytest.raises(RuntimeError, match="TRUSTED_PROXY_HOPS"):
+        Settings.from_env()
+
+
+def test_trusted_proxy_hops_defaults_to_zero(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    set_required_env(monkeypatch, tmp_path)
+    monkeypatch.delenv("WEEDLAB_TRUSTED_PROXY_HOPS", raising=False)
+    assert Settings.from_env().trusted_proxy_hops == 0

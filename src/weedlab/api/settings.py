@@ -23,6 +23,7 @@ class Settings:
     database_url: str | None = None
     rate_limit_per_minute: int = 10
     retention_days: int = DEFAULT_RETENTION_DAYS
+    trusted_proxy_hops: int = 0
 
     @property
     def model_name(self) -> str:
@@ -64,6 +65,13 @@ class Settings:
             raise RuntimeError(
                 "WEEDLAB_RETENTION_DAYS must be a whole number of days, or 0 to keep everything"
             )
+        raw_hops = os.environ.get("WEEDLAB_TRUSTED_PROXY_HOPS", "0")
+        try:
+            hops = int(raw_hops)
+        except ValueError:
+            hops = -1
+        if not 0 <= hops <= 5:
+            raise RuntimeError("WEEDLAB_TRUSTED_PROXY_HOPS must be a whole number from 0 to 5")
         return cls(
             model_path=model_path,
             max_upload_bytes=int(max_mb * 1024 * 1024),
@@ -71,4 +79,5 @@ class Settings:
             database_url=database_url,
             rate_limit_per_minute=rate,
             retention_days=retention,
+            trusted_proxy_hops=hops,
         )
