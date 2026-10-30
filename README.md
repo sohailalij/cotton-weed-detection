@@ -20,6 +20,8 @@ What to expect from free hosting:
 
 Pushing a version tag such as `v0.1.2` deploys that exact commit to Render through a GitHub Actions workflow. Merging to `main` does not deploy. How to deploy, roll back and debug is in [`docs/runbook.md`](docs/runbook.md).
 
+A diagram of how the pieces fit together is in [`docs/architecture.md`](docs/architecture.md).
+
 ## Results
 
 Held-out test set (845 images, 1,544 boxes, whole photo dates kept in one split to avoid leakage):
