@@ -2,7 +2,23 @@
 
 Upload a close-up photo of a cotton field and get back bounding boxes, species labels and a weed coverage estimate for 12 weed species. A YOLO11s detector trained on CottonWeedDet12, served through a FastAPI service with ONNX Runtime on CPU, with detection history stored in Postgres, and a React page to use it.
 
-**Status:** data pipeline, training, evaluation, the API and the web page (Detect, History and Analytics) are done. The public deployment is not built yet.
+**Status:** data pipeline, training, evaluation, the API, the web page and the public deployment are done. The live demo runs on free hosting, see below for what that means.
+
+## Live demo
+
+- Web page: https://cotton-weed-detection.vercel.app
+- API: https://cotton-weed-detection.onrender.com (interactive docs at `/docs`)
+
+It runs entirely on free tiers: the web page on Vercel, the API in a Docker container on Render, and the database on Neon. The model file is kept in a Hugging Face model repository ([sohail187/cotton-weed-yolo11s](https://huggingface.co/sohail187/cotton-weed-yolo11s)). The API downloads it at startup and checks its SHA-256 before using it.
+
+What to expect from free hosting:
+
+- The API sleeps when idle, so the first request after a quiet period can take about 50 seconds.
+- A detection typically takes about 15 seconds, because the free instance has a tenth of a CPU.
+- The database also pauses when idle and adds a few seconds when it wakes.
+- Photos are deleted after 7 days and there is no login, so do not upload anything private (see [Privacy](#privacy)).
+
+Pushing a version tag such as `v0.1.2` deploys that exact commit to Render through a GitHub Actions workflow. Merging to `main` does not deploy. How to deploy, roll back and debug is in [`docs/runbook.md`](docs/runbook.md).
 
 ## Results
 
@@ -23,6 +39,8 @@ You need Docker. The trained model is not in the repository. Place the exported 
 ```
 python -m weedlab.export --weights models/yolo11s_v1_960_best.pt --imgsz 960 --out models/yolo11s_v1_960.onnx
 ```
+
+Instead of exporting it yourself, the API can download the published file. Set `WEEDLAB_MODEL_URL` to the pinned address in the model repository and `WEEDLAB_MODEL_SHA256` to its hash. If the file is missing at startup the API downloads it, and it refuses to start if the hash does not match.
 
 Then start the API and the database:
 
@@ -62,6 +80,9 @@ Uploads are limited to JPEG, PNG and WEBP, decoded rather than trusted by header
 | `WEEDLAB_MAX_UPLOAD_MB` | `15` | Upload size limit |
 | `WEEDLAB_RATE_LIMIT_PER_MINUTE` | `10` | Requests per client per minute on `/v1/detect` |
 | `WEEDLAB_RETENTION_DAYS` | `7` | Saved detections and photos older than this many days are deleted automatically; `0` keeps everything |
+| `WEEDLAB_MODEL_URL` | unset | https address to download the model from when the file is missing |
+| `WEEDLAB_MODEL_SHA256` | unset | Expected SHA-256 of the model file. Required when downloading; a mismatch stops the service |
+| `WEEDLAB_TRUSTED_PROXY_HOPS` | `0` | Number of trusted proxies in front of the API. The visitor's address is read that many entries from the right of `X-Forwarded-For`. It is `3` on Render and `0` locally |
 
 The service refuses to start if a required setting is missing or a value is invalid. The credentials in `docker-compose.yml` are for local development only.
 
@@ -119,7 +140,7 @@ Training and evaluation need the extras `train` and `export` as well. The code i
 - Trained on close-up single-plant photos from one region and one growing season. It has not been tested on wide field views, drone images, other crops or other seasons.
 - Most test images (685 of 845) come from one photo date, so the test scores mostly describe one session.
 - Carpetweed is missed often even when clearly visible, and small weeds are missed far more than large ones.
-- The rate limiter is in memory and per process, so it resets on restart and does not coordinate between workers. It keys on the client address the app sees, so behind a proxy or Docker Desktop every client can share one counter unless forwarded addresses are configured.
+- The rate limiter is in memory and per process, so it resets on restart and does not coordinate between workers. Behind a proxy it needs `WEEDLAB_TRUSTED_PROXY_HOPS` set to the right number, found by logging the header, or every visitor shares one counter. If the host changes its proxy layout, that number has to be checked again.
 - Each detection is saved together with a JPEG copy of the photo, resized to at most 640 px on the long side (about 100 KB each). Photos are deleted after `WEEDLAB_RETENTION_DAYS` days (7 by default) or earlier with `DELETE /v1/detections/{id}`. The cleanup only runs while the service is running, so on a host that sleeps, expired photos stay until it wakes.
 - There is no login. Visitors are separated by a random id kept in the browser (see [Privacy](#privacy)), which stops accidental viewing but is not strong access control, so do not expose the service publicly with photos you would not want others to see.
 - The daily statistics group by UTC day, so a detection made late in the evening in the Americas can appear under the next day. They are computed in the application by reading all matching rows, which is fine for a demo but would need a database-side query for a large history.
