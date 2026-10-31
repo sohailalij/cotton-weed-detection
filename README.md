@@ -1,8 +1,8 @@
 # Cotton weed detection
 
-Upload a close-up photo of a cotton field and get back bounding boxes, species labels and a weed coverage estimate for 12 weed species. A YOLO11s detector trained on CottonWeedDet12, served through a FastAPI service with ONNX Runtime on CPU, with detection history stored in Postgres, and a React page to use it.
+This app takes a close-up photo of a cotton field, draws a box around each weed, names the species (12 are supported) and estimates how much of the photo the weeds cover. A live demo is linked below.
 
-**Status:** data pipeline, training, evaluation, the API, the web page and the public deployment are done. The live demo runs on free hosting, see below for what that means.
+Under the hood, it uses a YOLO11s detector trained on the CottonWeedDet12 dataset. A FastAPI service runs the model with ONNX Runtime on a CPU, detection history is stored in Postgres, and a React web page sits on top.
 
 ## Live demo
 
