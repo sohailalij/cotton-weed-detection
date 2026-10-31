@@ -7,7 +7,7 @@ Under the hood, it uses a YOLO11s detector trained on the CottonWeedDet12 datase
 ## Live demo
 
 - Web page: https://cotton-weed-detection.vercel.app
-- API: https://cotton-weed-detection.onrender.com (interactive docs at `/docs`)
+- API: https://cotton-weed-detection.onrender.com/docs (interactive docs; `/health` shows whether the service is up)
 
 ![The web page after a detection: a test-set photo with one waterhemp plant boxed, 26.7% coverage](docs/images/demo.png)
 
