@@ -11,6 +11,8 @@ Under the hood, it uses a YOLO11s detector trained on the CottonWeedDet12 datase
 
 ![The web page after a detection: a test-set photo with one waterhemp plant boxed, 26.7% coverage](docs/images/demo.png)
 
+[Watch a 2 minute demo video](https://drive.google.com/file/d/19W3j2tSuwmUyhTQAs3_4P_1YgK8wHXoW/view)
+
 It runs entirely on free tiers: the web page on Vercel, the API in a Docker container on Render, and the database on Neon. The model file is kept in a Hugging Face model repository ([sohail187/cotton-weed-yolo11s](https://huggingface.co/sohail187/cotton-weed-yolo11s)). The API downloads it at startup and checks its SHA-256 before using it.
 
 What to expect from free hosting:
