@@ -9,6 +9,8 @@ Upload a close-up photo of a cotton field and get back bounding boxes, species l
 - Web page: https://cotton-weed-detection.vercel.app
 - API: https://cotton-weed-detection.onrender.com (interactive docs at `/docs`)
 
+![The web page after a detection: a test-set photo with one waterhemp plant boxed, 26.7% coverage](docs/images/demo.png)
+
 It runs entirely on free tiers: the web page on Vercel, the API in a Docker container on Render, and the database on Neon. The model file is kept in a Hugging Face model repository ([sohail187/cotton-weed-yolo11s](https://huggingface.co/sohail187/cotton-weed-yolo11s)). The API downloads it at startup and checks its SHA-256 before using it.
 
 What to expect from free hosting:
